@@ -767,41 +767,82 @@ function onAddrInput() {
   document.getElementById('addrResult').style.display = 'none';
 }
 function analyzeAddress() {
-  const rawAddr = document.getElementById('fAddress').value.trim();
-  if (!rawAddr) { alert('请先输入地址'); return; }
+  const raw = document.getElementById('fAddress').value.trim();
+  if (!raw) { alert('请先输入地址信息'); return; }
   const resultEl = document.getElementById('addrResult');
   const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾','内蒙古','广西','西藏','宁夏','新疆','香港','澳门'];
-  let province = '';
-  let rest = rawAddr;
-  for (const p of provinces) {
-    if (rest.includes(p)) { province = p; rest = rest.replace(p, ''); break; }
+  
+  let text = raw;
+  let foundName = '';
+  let foundPhone = '';
+  let foundAddr = '';
+  
+  // 1. 提取手机号
+  const phoneMatch = text.match(/1[3-9]\d{9}/);
+  if (phoneMatch) {
+    foundPhone = phoneMatch[0];
+    text = text.replace(foundPhone, ' ');
   }
-  // 匹配市/区/县
-  const cityMatch = rest.match(/(.+?(?:市|区|县|旗|盟|自治州|地区))/);
-  let city = cityMatch ? cityMatch[1] : '';
+  
+  // 2. 提取省份
+  let province = '';
+  for (const p of provinces) {
+    if (text.includes(p)) { province = p; text = text.replace(p, ' '); break; }
+  }
+  
+  // 3. 提取市/区/县
+  const cityMatch = text.match(/(.+?(?:市|区|县|旗|盟|自治州|地区))/);
+  let city = '';
+  if (cityMatch) { city = cityMatch[1].trim(); text = text.replace(cityMatch[1], ' '); }
+  
+  // 4. 再提取区/县（如果上面只提取到市）
+  let district = '';
+  const distMatch = text.match(/(.+?(?:区|县|镇|乡))/);
+  if (distMatch && distMatch[1].trim().length <= 6) { district = distMatch[1].trim(); text = text.replace(distMatch[1], ' '); }
+  
+  // 5. 剩余文本中，去掉纯数字(可能是邮编)和多余空白，看看有没有名字
+  let remaining = text.replace(/\d{6}/g, '').replace(/\s+/g, ' ').trim();
+  
+  // 6. 如果客户姓名为空，尝试从剩余文本提取姓名
+  const customerField = document.getElementById('fCustomer');
+  if (!customerField.value.trim() && remaining) {
+    // 取剩余文本第一个连续中文段落作为姓名（2-4个字）
+    const nameMatch = remaining.match(/([\u4e00-\u9fa5]{2,4})/);
+    if (nameMatch) {
+      foundName = nameMatch[1];
+      remaining = remaining.replace(foundName, '').trim();
+    }
+  }
+  
+  // 7. 组装完整地址（省+市+区+剩余详细地址）
+  foundAddr = (province + city + district + ' ' + remaining).replace(/\s+/g, ' ').trim();
+  // 去掉可能的逗号分隔
+  foundAddr = foundAddr.replace(/[,，、]/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  // 8. 回填到对应输入框
+  let filled = [];
+  if (foundName && !customerField.value.trim()) {
+    customerField.value = foundName;
+    filled.push('姓名：' + foundName);
+  }
+  if (foundPhone) {
+    document.getElementById('fPhone').value = foundPhone;
+    filled.push('电话：' + foundPhone);
+  }
+  if (province || city || district) {
+    document.getElementById('fAddress').value = foundAddr;
+    filled.push('地址：' + foundAddr);
+  } else {
+    // 没识别出省市区，保持原样
+    filled.push('地址未识别省市区，保持原样');
+  }
   
   resultEl.style.display = 'block';
-  if (province || city) {
-    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已识别：</span>' +
-      (province ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">'+province+'</span>' : '') +
-      (city ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px">'+city+'</span>' : '');
-    // 回填格式化地址
-    let formatted = '';
-    if (province) formatted += province;
-    if (city) {
-      // 如果省名不以市/区结尾，加空格
-      if (formatted && !city.startsWith('市') && !city.startsWith('区')) formatted += ' ';
-      formatted += city;
-    }
-    // 剩余部分
-    let remaining = rawAddr;
-    remaining = remaining.replace(province, '').replace(city, '').replace(/\s+/g, ' ').trim();
-    if (remaining && remaining !== province) {
-      formatted += ' ' + remaining;
-    }
-    document.getElementById('fAddress').value = formatted.trim();
+  if (filled.length > 0) {
+    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已回填：</span>' +
+      filled.map(f => '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">' + f + '</span>').join('');
   } else {
-    resultEl.innerHTML = '<span style="color:var(--orange)">未能识别省市区</span>';
+    resultEl.innerHTML = '<span style="color:var(--orange)">未能识别有效信息</span>';
   }
 }
 

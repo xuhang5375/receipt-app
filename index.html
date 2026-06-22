@@ -771,48 +771,115 @@ function analyzeAddress() {
   if (!raw) { alert('请先粘贴或输入包含客户信息的文本'); return; }
   const resultEl = document.getElementById('addrResult');
   
-  const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾','内蒙古','广西','西藏','宁夏','新疆','香港','澳门'];
-  // 省名后缀变体（河南→河南省）
-  const provSuffixes = ['省','市','自治区','壮族自治区','回族自治区','维吾尔自治区','特别行政区'];
-  
-  let text = raw;
   let foundName = '';
   let foundPhone = '';
   let foundAddr = '';
   
-  // ===== 1. 提取手机号 =====
+  // ===== 预处理：识别带标签的格式 =====
+  // 格式1: "收件人: 椒椒\n手机号码: 19530256561\n所在地区: ...\n详细地址: ..."
+  // 格式2: "椒椒 19530256561 江苏省南京市..."（无标签纯文本）
+  const labelPatterns = [
+    /收件人[：:](.+?)(?:\n|$)/,
+    /姓名[：:](.+?)(?:\n|$)/,
+    /客户[名姓][：:](.+?)(?:\n|$)/,
+    /联系人[：:](.+?)(?:\n|$)/,
+    /名字[：:](.+?)(?:\n|$)/,
+  ];
+  const phonePatterns = [
+    /手机[号碼号码]?[：:](\s*)(1[3-9]\d{9})/,
+    /电话[号码]?[：:](\s*)(1[3-9]\d{9})/,
+    /联系电话[：:](\s*)(1[3-9]\d{9})/,
+    /手机[号碼号码]?[：:]([0-9-]+)/,
+  ];
+  const addrPatterns = [
+    /所在地区[：:](.+?)(?:\n|$)/,
+    /地区[：:](.+?)(?:\n|$)/,
+    /地址[：:](.+?)(?:\n|$)/,
+    /详细地址[：:](.+?)(?:\n|$)/,
+    /收货地址[：:](.+?)(?:\n|$)/,
+    /配送地址[：:](.+?)(?:\n|$)/,
+  ];
+  
+  let isLabeledFormat = false;
+  
+  // 尝试标签格式提取
+  for (const p of labelPatterns) {
+    const match = raw.match(p);
+    if (match && match[1].trim()) {
+      foundName = match[1].trim();
+      isLabeledFormat = true;
+      break;
+    }
+  }
+  for (const p of phonePatterns) {
+    const match = raw.match(p);
+    if (match && match[2] ? match[2].trim() : match[1]?.trim()) {
+      foundPhone = (match[2] || match[1]).replace(/[^0-9]/g, '');
+      isLabeledFormat = true;
+      break;
+    }
+  }
+  for (const p of addrPatterns) {
+    const match = raw.match(p);
+    if (match && match[1].trim()) {
+      foundAddr = match[1].trim();
+      isLabeledFormat = true;
+      break;
+    }
+  }
+  
+  // 如果是带标签的格式，直接回填，不需要再做复杂解析
+  if (isLabeledFormat && (foundName || foundPhone || foundAddr)) {
+    let filled = [];
+    const customerField = document.getElementById('fCustomer');
+    if (foundName && !customerField.value.trim()) {
+      customerField.value = foundName;
+      filled.push('姓名→' + foundName);
+    }
+    if (foundPhone) {
+      document.getElementById('fPhone').value = foundPhone;
+      filled.push('电话→' + foundPhone);
+    }
+    if (foundAddr) {
+      document.getElementById('fAddress').value = foundAddr;
+      filled.push('地址→' + foundAddr);
+    }
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已回填：</span>' +
+        filled.map(f => '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">' + f + '</span>').join('');
+    return;
+  }
+  
+  // ===== 无标签格式：智能拆分（原有逻辑）=====
+  let text = raw;
+  const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾','内蒙古','广西','西藏','宁夏','新疆','香港','澳门'];
+  const provSuffixes = ['省','市','自治区','壮族自治区','回族自治区','维吾尔自治区','特别行政区'];
+  
+  // 1. 提取手机号
   const phoneMatch = text.match(/1[3-9]\d{9}/);
   if (phoneMatch) {
     foundPhone = phoneMatch[0];
     text = text.replace(foundPhone, ' ');
   }
-  
-  // ===== 2. 提取固话（区号-号码 格式） =====
+  // 提取固话
   if (!foundPhone) {
     const telMatch = text.match(/0\d{2,3}-?\d{7,8}/);
     if (telMatch) { foundPhone = telMatch[0]; text = text.replace(foundPhone, ' '); }
   }
   
-  // ===== 3. 清洗干扰文本 =====
-  // 去掉常见无关关键词
-  const noiseWords = ['已付款','未付款','已发货','待发货','已签收','货到付款','急','着急','尽快','今天','明天','下午','上午','备注','谢谢','麻烦','辛苦','微信','支付宝','转账','现金','结清','欠款','催','到付','自提','包邮','快递','物流'];
+  // 2. 清洗干扰文本
+  const noiseWords = ['已付款','未付款','已发货','待发货','已签收','货到付款','急','着急','尽快','今天','明天','下午','上午','备注','谢谢','麻烦','辛苦','微信','支付宝','转账','现金','结清','欠款','催','到付','自提','包邮','快递','物流','收件人','手机号码','所在地区','详细地址','联系人','联系电话','客户姓名','日期','订单号','编号'];
   for (const nw of noiseWords) {
     text = text.replace(new RegExp(nw, 'g'), ' ');
   }
-  // 去掉日期格式（2024年、2024-03-15等）
   text = text.replace(/\d{4}[年/-]\d{1,2}[月/-]?\d{0,2}[日号]?/g, ' ');
-  // 去掉纯数字（可能是订单号、金额等，但保留地址中的门牌号）
-  // 不做激进清理，只去掉8位以上纯数字
   text = text.replace(/\b\d{8,}\b/g, ' ');
-  // 去掉中英文标点干扰
   text = text.replace(/[,，、:：；;!！？?。\n\r\t]/g, ' ');
   text = text.replace(/\s+/g, ' ').trim();
   
-  // ===== 4. 提取省份 =====
-  let province = '';
-  let provFull = '';
+  // 3. 提取省份
+  let province = '', provFull = '';
   for (const p of provinces) {
-    // 尝试匹配 省/市/自治区 后缀版本
     for (const s of provSuffixes) {
       if (text.includes(p + s)) { province = p; provFull = p + s; break; }
     }
@@ -820,34 +887,32 @@ function analyzeAddress() {
     if (province) { text = text.replace(provFull, ' '); break; }
   }
   
-  // ===== 5. 提取市 =====
+  // 4. 提取市
   const cityMatch = text.match(/([\u4e00-\u9fa5]+?(?:市|地区|自治州))/);
   let city = '';
   if (cityMatch) { city = cityMatch[1]; text = text.replace(city, ' '); }
   
-  // ===== 6. 提取区/县 =====
+  // 5. 提取区/县
   const distMatch = text.match(/([\u4e00-\u9fa5]+?(?:区|县|旗|新区|开发区))/);
   let district = '';
   if (distMatch) { district = distMatch[1]; text = text.replace(distMatch[1], ' '); }
   
-  // ===== 7. 提取街道/路/镇 =====
+  // 6. 提取街道/路/镇
   const streetMatch = text.match(/([\u4e00-\u9fa5]+?(?:路|街|道|巷|弄|胡同|镇|乡|村|大厦|广场|小区|花园|市场|园|城|座|层|栋|号院))/);
   let street = '';
   if (streetMatch) { street = streetMatch[1]; text = text.replace(streetMatch[1], ' '); }
   
-  // ===== 8. 提取门牌号 =====
+  // 7. 门牌号
   const numMatch = text.match(/(\d+[号栋座层])/);
   let doorNum = '';
   if (numMatch) { doorNum = numMatch[1]; text = text.replace(doorNum, ' '); }
   
-  // ===== 9. 剩余文本提取姓名 =====
+  // 8. 剩余提取姓名
   const customerField = document.getElementById('fCustomer');
   text = text.replace(/\s+/g, ' ').trim();
   if (!customerField.value.trim() && text) {
-    // 取第一个2-4字纯中文词作为姓名
     const nameMatch = text.match(/([\u4e00-\u9fa5]{2,4})/);
     if (nameMatch) {
-      // 排除常见非姓名词
       const exclude = ['公寓','商务','国际','中心','大厦','小区','花园','市场','物流','批发','商贸','有限','公司','有限公'];
       if (!exclude.includes(nameMatch[1])) {
         foundName = nameMatch[1];
@@ -856,24 +921,21 @@ function analyzeAddress() {
     }
   }
   
-  // ===== 10. 组装完整地址 =====
+  // 9. 组装地址
   let addrParts = [];
-  if (provFull) addrParts.push(provFull);
-  else if (province) addrParts.push(province);
+  if (provFull) addrParts.push(provFull); else if (province) addrParts.push(province);
   if (city) addrParts.push(city);
   if (district) addrParts.push(district);
   if (street) addrParts.push(street);
   if (doorNum) addrParts.push(doorNum);
-  // 剩余文本中可能还有地址细节
   text = text.replace(/\s+/g, ' ').trim();
   if (text && text.length > 0) {
-    // 过滤掉太短的残留（1-2字可能是噪声）
     const fragments = text.split(/\s+/).filter(f => f.length >= 2);
     if (fragments.length > 0) addrParts.push(fragments.join(''));
   }
   foundAddr = addrParts.join('');
   
-  // ===== 11. 回填 =====
+  // 10. 回填
   let filled = [];
   if (foundName && !customerField.value.trim()) {
     customerField.value = foundName;
@@ -891,7 +953,7 @@ function analyzeAddress() {
   resultEl.style.display = 'block';
   if (filled.length > 0) {
     resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已回填：</span>' +
-      filled.map(f => '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">' + f + '</span>').join('');
+        filled.map(f => '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">' + f + '</span>').join('');
   } else {
     resultEl.innerHTML = '<span style="color:var(--orange)">未能识别有效信息，请手动填写</span>';
   }

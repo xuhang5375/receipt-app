@@ -128,104 +128,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hira
 .ph-footer{font-size:15px;margin-top:20px;line-height:2.8}
 .ph-footer .pf-row{display:flex;flex-wrap:wrap;gap:4px 30px}
 .ph-footer .pf-row span{white-space:nowrap}
-.preview-footer{display:flex;gap:10px;margin-top:16px;padding:0 8px}
-.preview-footer button{flex:1}
-@media print{
-  body * { visibility:hidden; }
-  .preview-page,.preview-page *{visibility:visible;}
-  .preview-page{position:absolute;left:0;top:0;width:100%;padding:0;background:#fff}
-  .preview-sheet{box-shadow:none;max-width:100%}
-  .preview-footer{display:none!important}
-}
-
-/* 搜索栏 */
-.search-bar{padding:10px 16px;background:var(--bg)}
-.search-bar input{width:100%;border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;outline:none;background:#fff}
-
-/* 筛选 */
-.filter-bar{display:flex;gap:8px;padding:0 16px 10px;overflow-x:auto}
-.filter-bar .chip{padding:5px 14px;border-radius:16px;font-size:12px;white-space:nowrap;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text2)}
-.filter-bar .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-
-/* 弹窗 */
-.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-end;justify-content:center}
-.modal-overlay.show{display:flex}
-.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 16px;max-height:80vh;overflow-y:auto}
-.modal h3{text-align:center;font-size:16px;margin-bottom:16px}
-.modal .actions{display:flex;gap:10px;margin-top:16px}
-.modal .actions button{flex:1;padding:10px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
-.modal .btn-cancel{background:#f5f5f5;color:var(--text2)}
-.modal .btn-confirm{background:var(--primary);color:#fff}
-
-/* 统计 */
-.stats-bar{display:flex;gap:10px;padding:12px 16px}
-.stat-card{flex:1;background:#fff;border-radius:10px;padding:12px;text-align:center}
-.stat-card .val{font-size:18px;font-weight:700;color:var(--primary)}
-.stat-card .lab{font-size:11px;color:var(--text3);margin-top:2px}
-</style>
-</head>
-<body>
-<div class="app">
-
-<!-- 首页 -->
-<div class="page active" id="page-home">
-  <div class="header">
-    <div class="back" style="visibility:hidden">‹</div>
-    <h1>服务账单</h1>
-    <div class="action" onclick="showPage('new')">＋</div>
-  </div>
-
-  <!-- 统计 -->
-  <div class="stats-bar">
-    <div class="stat-card"><div class="val" id="stat-total">0</div><div class="lab">总金额</div></div>
-    <div class="stat-card"><div class="val" id="stat-unpaid">0</div><div class="lab">未结清</div></div>
-    <div class="stat-card"><div class="val" id="stat-count">0</div><div class="lab">账单数</div></div>
-  </div>
-
-  <!-- 搜索 -->
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="搜索客户名/商品..." oninput="renderBillList()">
-  </div>
-
-  <!-- 筛选 -->
-  <div class="filter-bar" id="filterBar">
-    <div class="chip active" data-filter="all" onclick="setFilter(this)">全部</div>
-    <div class="chip" data-filter="unpaid" onclick="setFilter(this)">未结清</div>
-    <div class="chip" data-filter="unpaid_unsent" onclick="setFilter(this)">未结清未发送</div>
-    <div class="chip" data-filter="paid" onclick="setFilter(this)">已结清</div>
-  </div>
-
-  <div class="bill-list" id="billList"></div>
+.preview-footer" style="display:flex;gap:10px;margin-top:18px;padding:0 8px">
+  <button onclick="closePreview()">返回</button>
+  <button onclick="window.print()" style="background:#fff;color:var(--primary);border:1px solid var(--primary)">打印</button>
+  <button onclick="savePreviewImage()" style="background:var(--primary);color:#fff">保存图片</button>
 </div>
-
-<!-- 新建/编辑页 -->
-<div class="page" id="page-new">
-  <div class="header">
-    <div class="back" onclick="showPage('home')">‹</div>
-    <h1 id="formTitle">新建账单</h1>
-    <div class="action" style="visibility:hidden">　</div>
-  </div>
-  <div class="form-page">
-    <div class="form-group">
-      <label>客户姓名 *</label>
-      <input type="text" id="fCustomer" placeholder="输入客户姓名">
-    </div>
-    <div class="row2">
-      <div class="form-group">
-        <label>联系电话</label>
-        <input type="tel" id="fPhone" placeholder="手机号">
-      </div>
-      <div class="form-group">
-        <label>日期</label>
-        <input type="date" id="fDate">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>收货地址</label>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="fAddress" placeholder="输入地址后点击分析" style="flex:1" oninput="onAddrInput()">
-        <button type="button" class="btn-sm btn-green" onclick="analyzeAddress()" style="white-space:nowrap;padding:8px 14px;font-size:13px">一键分析</button>
-      </div>
       <div id="addrResult" style="margin-top:6px;font-size:12px;color:var(--text2);display:none"></div>
     </div>
 
@@ -1019,6 +926,34 @@ if (bills.length === 0) {
 }
 renderBillList();
 document.getElementById('fDate').value = todayStr();
+
+
+// 保存预览为图片
+function savePreviewImage() {
+  const sheet = document.querySelector('.preview-sheet');
+  if (!sheet) { alert('没有预览内容'); return; }
+  // 临时移除 box-shadow（避免截图阴影影响观感）
+  const origShadow = sheet.style.boxShadow;
+  sheet.style.boxShadow = 'none';
+  
+  html2canvas(sheet, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    width: sheet.scrollWidth,
+    height: sheet.scrollHeight
+  }).then(canvas => {
+    sheet.style.boxShadow = origShadow;
+    const link = document.createElement('a');
+    link.download = '收据_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(err => {
+    sheet.style.boxShadow = origShadow;
+    alert('保存失败：' + err.message);
+  });
+}
 </script>
 </body>
 </html>

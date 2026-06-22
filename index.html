@@ -62,13 +62,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hira
 .items-section .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .items-section .header span{font-weight:600;font-size:15px}
 .btn-add-item{background:none;border:1px dashed var(--primary);color:var(--primary);padding:6px 16px;border-radius:16px;font-size:13px;cursor:pointer}
-.item-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;padding:8px;background:var(--bg);border-radius:8px}
-.item-row input{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;outline:none}
-.item-row .iname{flex:3;min-width:0}
-.item-row .iunit{width:70px}
-.item-row .iunit select{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 4px;font-size:13px;outline:none;background:#fff;text-align:center}
-.item-row .iqty,.item-row .iprice{flex:1}
-.item-row .idel{width:28px;height:28px;border:none;background:#fee;color:var(--red);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.item-row{margin-bottom:12px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--primary)}
+.item-row .iline{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.item-row .iline:last-child{margin-bottom:0}
+.item-row input,.item-row select{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:14px;outline:none;background:#fff}
+.item-row .iname{flex:1;min-width:0}
+.item-row .iunit{width:80px;flex-shrink:0}
+.item-row .iqty{width:70px;flex-shrink:0}
+.item-row .iprice{width:80px;flex-shrink:0}
+.item-row .idel{width:26px;height:26px;border:none;background:#fee;color:var(--red);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 /* 汇总 */
 .summary{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px}
@@ -208,10 +210,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hira
       </div>
       <div id="addrResult" style="margin-top:6px;font-size:12px;color:var(--text2);display:none"></div>
     </div>
-    <div class="form-group">
-      <label>联系人（经手人）</label>
-      <input type="text" id="fHandler" placeholder="经手人姓名">
-    </div>
+
 
     <div class="items-section">
       <div class="header">
@@ -386,11 +385,13 @@ function addItem(data) {
   div.className = 'item-row';
   div.id = 'item_' + itemIndex;
   div.innerHTML =
-    '<input class="iname" placeholder="输入产品名称" value="'+esc(data.name)+'">' +
-    '<select class="iunit"><option value="斤"'+(data.unit==='斤'?' selected':'')+'>斤</option><option value="袋"'+(data.unit==='袋'?' selected':'')+'>袋</option><option value="箱"'+(data.unit==='箱'?' selected':'')+'>箱</option></select>' +
-    '<input class="iqty" type="number" placeholder="数量" value="'+data.qty+'" min="0" step="any" oninput="calcTotal()">' +
-    '<input class="iprice" type="number" placeholder="单价" value="'+(data.price||0)+'" min="0" step="any" oninput="calcTotal()">' +
-    '<button class="idel" onclick="removeItem('+itemIndex+')">×</button>';
+    '<div class="iline"><input class="iname" placeholder="输入产品名称" value="'+esc(data.name)+'"></div>' +
+    '<div class="iline">' +
+      '<select class="iunit"><option value="斤"'+(data.unit==='斤'?' selected':'')+'>斤</option><option value="袋"'+(data.unit==='袋'?' selected':'')+'>袋</option><option value="箱"'+(data.unit==='箱'?' selected':'')+'>箱</option></select>' +
+      '<input class="iqty" type="number" placeholder="数量" value="'+data.qty+'" min="0" step="any" oninput="calcTotal()">' +
+      '<input class="iprice" type="number" placeholder="单价" value="'+(data.price||0)+'" min="0" step="any" oninput="calcTotal()">' +
+      '<button class="idel" onclick="removeItem('+itemIndex+')">×</button>' +
+    '</div>';
   document.getElementById('itemsContainer').appendChild(div);
   itemIndex++;
   calcTotal();
@@ -427,7 +428,6 @@ function resetForm() {
   document.getElementById('fPhone').value = '';
   document.getElementById('fDate').value = todayStr();
   document.getElementById('fAddress').value = '';
-  document.getElementById('fHandler').value = '';
   document.getElementById('fDiscount').value = '0';
   document.getElementById('itemsContainer').innerHTML = '';
   itemIndex = 0;
@@ -460,7 +460,7 @@ function saveBill() {
     phone: document.getElementById('fPhone').value.trim(),
     date: document.getElementById('fDate').value || todayStr(),
     address: document.getElementById('fAddress').value.trim(),
-    handler: document.getElementById('fHandler').value.trim(),
+    handler: '',
     items,
     total,
     discount,
@@ -628,7 +628,6 @@ function editCurrentBill() {
   document.getElementById('fPhone').value = bill.phone || '';
   document.getElementById('fDate').value = bill.date;
   document.getElementById('fAddress').value = bill.address || '';
-  document.getElementById('fHandler').value = bill.handler || '';
   document.getElementById('fDiscount').value = bill.discount || 0;
 
   document.getElementById('itemsContainer').innerHTML = '';
@@ -764,26 +763,29 @@ function analyzeAddress() {
   const addr = document.getElementById('fAddress').value.trim();
   if (!addr) { alert('请先输入地址'); return; }
   const resultEl = document.getElementById('addrResult');
-  // 省市区正则匹配
   const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾','内蒙古','广西','西藏','宁夏','新疆','香港','澳门'];
-  const cities = ['市','区','县','旗','盟','自治州','地区','特别行政区','新区','开发区','高新区','经济区','示范区','园区','工业园','技术开发区','经济技术开发区','高新技术产业开发区','临港','空港','保税区','自贸区','出口加工区','综合保税区','跨境工业区','合作区','直辖区','直辖市','副省级市','地级市','县级市'];
-  let province = '', city = '', district = '', detail = addr;
+  let province = '', city = '', detail = addr;
   for (const p of provinces) {
     if (addr.includes(p)) { province = p; detail = detail.replace(p, ''); break; }
   }
-  // 匹配市/区/县
   const cityMatch = detail.match(/(.+?(?:市|区|县|旗|盟|自治州|地区))/);
-  if (cityMatch) { city = cityMatch[1]; detail = detail.replace(city, ''); }
-  // 再匹配下一级
-  const distMatch = detail.match(/(.+?(?:市|区|县|镇|乡|街道|路|街|道|村|巷|弄|号|栋|幢|单元|楼|层))/);
-  if (distMatch && distMatch[1].length <= 6) { district = distMatch[1]; }
+  if (cityMatch) { city = cityMatch[1]; }
   
   resultEl.style.display = 'block';
-  resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">分析结果：</span>' +
-    (province ? '<span style="background:var(--bg);padding:2px 8px;border-radius:4px;margin-right:4px">📍 '+province+'</span>' : '') +
-    (city ? '<span style="background:var(--bg);padding:2px 8px;border-radius:4px;margin-right:4px">🏙️ '+city+'</span>' : '') +
-    (district ? '<span style="background:var(--bg);padding:2px 8px;border-radius:4px;margin-right:4px">🏘️ '+district+'</span>' : '') +
-    (!province && !city ? '<span style="color:var(--orange)">未能识别省市区，地址将原样保存</span>' : '');
+  if (province || city) {
+    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">已识别：</span>' +
+      (province ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">省：'+province+'</span>' : '') +
+      (city ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px">市/区：'+city+'</span>' : '');
+    // 自动格式化回填
+    let formatted = '';
+    if (province) formatted += province;
+    if (city) { if (formatted && !city.startsWith('市') && !city.startsWith('区')) formatted += ' '; formatted += city; }
+    const remaining = addr.replace(province,'').replace(city,'').trim();
+    if (remaining) formatted += ' ' + remaining;
+    document.getElementById('fAddress').value = formatted.trim();
+  } else {
+    resultEl.innerHTML = '<span style="color:var(--orange)">未能识别省市区，地址保持原样</span>';
+  }
 }
 
 // ===== 初始化 =====

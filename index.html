@@ -101,26 +101,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hira
 .detail-actions{display:flex;gap:10px;margin-top:16px}
 .detail-actions .btn-primary,.detail-actions .btn-secondary{flex:1}
 
-/* 预览页 - 打印风格 */
+/* 预览页 - 牛实在打印风格（一比一复刻） */
 .preview-page{padding:8px;background:#f0f0f0}
-.preview-sheet{background:#fff;padding:24px 20px;max-width:480px;margin:0 auto;box-shadow:0 1px 4px rgba(0,0,0,.15);font-family:'SimSun','STSong',serif}
-.preview-header{text-align:center;margin-bottom:18px;border-bottom:2px solid #000;padding-bottom:10px}
-.preview-header h1{font-size:22px;font-weight:700;color:#000;letter-spacing:6px}
-.preview-header .subtitle{font-size:11px;color:#666;margin-top:2px}
-.preview-info{font-size:14px;line-height:2.2;margin-bottom:14px}
-.preview-info p{margin:0;padding:0}
-.preview-info .bill-id{float:right;font-size:12px;color:#999;margin-top:-30px}
-.preview-table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:14px;border-top:2px solid #000;border-left:1px solid #000;border-right:1px solid #000}
-.preview-table th{background:none;padding:9px 6px;text-align:left;font-weight:700;font-size:13px;border-bottom:2px solid #000;border-right:1px solid #ddd}
-.preview-table th:last-child{border-right:none}
-.preview-table td{padding:9px 6px;border-bottom:1px solid #ddd;border-right:1px solid #ddd;font-size:14px}
-.preview-table td:last-child{border-right:none}
-.preview-total{display:flex;justify-content:space-between;padding:10px 0;border-top:2px double #000;font-size:15px;font-weight:700;margin-bottom:14px}
-.preview-summary{font-size:14px;line-height:2;margin-bottom:14px}
-.preview-summary .srow{display:flex;justify-content:space-between}
-.preview-bottom{border-top:1px solid #ccc;padding-top:14px;font-size:13px;line-height:2.2}
-.preview-bottom .brow{display:flex;gap:40px}
-.preview-bottom .brow span{min-width:120px}
+.preview-sheet{background:#fff;padding:28px 22px;max-width:520px;margin:0 auto;box-shadow:0 1px 4px rgba(0,0,0,.15);font-family:'SimSun','STSong','Songti SC',serif;color:#000;line-height:1.6}
+/* 标题区：牛实在 居中+双下划线 */
+.ph-title{text-align:center;margin-bottom:6px;position:relative}
+.ph-title h1{font-size:26px;font-weight:700;color:#000;letter-spacing:10px;display:inline-block;border-bottom:3px double #000;padding-bottom:4px}
+.ph-billno{position:absolute;top:4px;right:0;font-size:15px;color:#333;letter-spacing:1px;font-family:'Courier New',monospace}
+/* 客户信息 */
+.ph-customer{font-size:15px;margin-bottom:12px;line-height:2}
+.ph-customer .pc-row{display:flex;flex-wrap:wrap;gap:8px 24px}
+.ph-customer .pc-row span{white-space:nowrap}
+.ph-customer .pc-label{font-weight:normal}
+.ph-customer .pc-fulladdr{width:100%}
+/* 表格 - 完整边框 */
+.ph-table{width:100%;border-collapse:collapse;font-size:14.5px;border:2px solid #000;margin-bottom:0}
+.ph-table th{background:none;padding:10px 7px;text-align:center;font-weight:700;font-size:14.5px;border:1.5px solid #000}
+.ph-table td{padding:9px 7px;border:1.5px solid #000;text-align:center;font-size:14.5px;height:38px}
+.ph-table td.td-left{text-align:left;padding-left:10px}
+.ph-table td.td-right{text-align:right;padding-right:10px}
+.ph-table tr.total-row td{font-weight:700;font-size:15px;border-top:2px solid #000}
+.ph-table tr.pay-row td{border-top:1.5px solid #000;font-size:14.5px}
+.ph-table tr.pay-row label{cursor:pointer;font-weight:normal;margin-left:8px}
+.ph-table tr.pay-row input[type=checkbox]{margin-right:3px;vertical-align:middle;width:16px;height:16px;accent-color:#000}
+/* 底部信息区 */
+.ph-footer{font-size:14.5px;margin-top:12px;line-height:2.2}
+.ph-footer .pf-row{display:flex;flex-wrap:wrap;gap:4px 30px}
+.ph-footer .pf-row span{white-space:nowrap}
 .preview-footer{display:flex;gap:10px;margin-top:16px;padding:0 8px}
 .preview-footer button{flex:1}
 @media print{
@@ -695,58 +702,85 @@ function showPreview(id) {
   const bill = bills.find(b => b.id === id);
   if (!bill) return;
   currentBillId = id;
-  const payMethodStr = (bill.payMethods||[]).join('、') || '-';
+  // 商品行
+  const itemsHtml = bill.items.map((it, i) =>
+    `<tr><td>${i+1}</td><td class="td-left">${esc(it.name)}</td><td>${esc(it.unit)}</td><td>${it.qty}</td><td class="td-right">${fmt(it.price)}</td><td class="td-right">${fmt(it.qty*it.price)}</td></tr>`
+  ).join('');
+  // 补空行到5行
+  const emptyCount = Math.max(0, 5 - bill.items.length);
+  let emptyHtml = '';
+  for (let e = 0; e < emptyCount; e++) {
+    const n = bill.items.length + e + 1;
+    emptyHtml += `<tr><td>${n}</td><td class="td-left"></td><td></td><td></td><td class="td-right"></td><td class="td-right"></td></tr>`;
+  }
+  // 付款方式复选框
+  const payMethods = bill.payMethods || [];
+  const payLabels = ['微信','支付宝','转账','现金','其他'];
+  const payChecks = payLabels.map(m => {
+    const ck = payMethods.includes(m) ? 'checked' : '';
+    return `<label><input type="checkbox" ${ck}> ${m}</label>`;
+  }).join('&nbsp;&nbsp;&nbsp;');
 
   document.getElementById('previewContent').innerHTML = `
-    <div class="preview-sheet" id="previewSheet">
-      <div class="preview-header">
-        <h1>服 务 账 单</h1>
-        <div class="subtitle">${bill.paid?'已结清':'尚未结清'}</div>
+  <div class="preview-sheet" id="previewSheet">
+    <!-- 标题 -->
+    <div class="ph-title">
+      <h1>牛实在</h1>
+      <span class="ph-billno">${bill.id.slice(0,20).toUpperCase()}</span>
+    </div>
+    <!-- 客户信息 -->
+    <div class="ph-customer">
+      <div class="pc-row">
+        <span><span class="pc-label">客户姓名：</span>${esc(bill.customer)}</span>
+        <span><span class="pc-label">客户电话：</span>${esc(bill.phone||'-')}</span>
+        <span><span class="pc-label">日期：</span>${bill.date}</span>
       </div>
-      <div style="text-align:right" class="bill-id">${bill.id}</div>
-      <div class="preview-info">
-        <p><strong>客户姓名：</strong>${esc(bill.customer)}</p>
-        <p><strong>客户电话：</strong>${esc(bill.phone||'-')}</p>
-        <p><strong>日期：</strong>${bill.date}</p>
-        <p><strong>客户地址：</strong>${esc(bill.address||'-')}</p>
+      <div class="pc-row pc-fulladdr">
+        <span><span class="pc-label">客户地址：</span>${esc(bill.address||'-')}</span>
       </div>
-      <table class="preview-table">
-        <tr><th>序号</th><th>品名及规格</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th></tr>
-        ${bill.items.map((it,i)=>`
-          <tr>
-            <td style="text-align:center">${i+1}</td>
-            <td>${esc(it.name)}</td>
-            <td>${esc(it.unit)}</td>
-            <td style="text-align:right">${it.qty}</td>
-            <td style="text-align:right">${fmt(it.price)}</td>
-            <td style="text-align:right">${fmt(it.qty*it.price)}</td>
-          </tr>
-        `).join('')}
-        <tr><td colspan="5" style="text-align:right;font-weight:700">合计金额（大写）</td><td style="font-weight:700">${toChineseNum(bill.total)}</td></tr>
-        <tr><td colspan="5" style="text-align:right">付款方式：</td><td><span style="font-size:12px">☑ 微信　☐ 付现宝　☐ 转账　☐ 现金　☐ 其他</span></td></tr>
-        <tr><td colspan="5" style="text-align:right;font-weight:700">￥</td><td style="font-weight:700;font-size:17px">${fmt(bill.actual)}</td></tr>
-      </table>
-      <div class="preview-total">
+    </div>
+    <!-- 表格 -->
+    <table class="ph-table">
+      <thead>
+        <tr><th style="width:46px">序号</th><th>品名及规格</th><th style="width:58px">单位</th><th style="width:62px">数量</th><th style="width:72px">单价</th><th style="width:82px">金额</th></tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}${emptyHtml}
+        <!-- 合计行 -->
+        <tr class="total-row">
+          <td colspan="4" style="text-align:left;padding-left:14px">合计金额（大写）　　${toChineseNum(bill.total)}</td>
+          <td colspan="2" style="text-align:right;padding-right:14px">￥${fmt(bill.total)}</td>
+        </tr>
+        <!-- 付款方式行 -->
+        <tr class="pay-row">
+          <td colspan="6" style="text-align:left;padding-left:14px;height:auto;padding:8px 14px">
+            付款方式：&nbsp;&nbsp;${payChecks}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- 底部信息 -->
+    <div class="ph-footer">
+      <div class="pf-row">
         <span>应收金额：￥${fmt(bill.total)}</span>
         <span>优惠金额：￥${fmt(bill.discount||0)}</span>
+        <span>实收金额：￥${fmt(bill.actual||bill.total)}</span>
       </div>
-      <div class="preview-summary">
-        <div class="srow"><span>实收金额：￥${fmt(bill.actual)}</span></div>
-        <div class="srow"><span style="color:var(--red)">欠款金额：￥${fmt(bill.debt)}${bill.debt<=0?' | 标记为已结清':''}</span></div>
+      <div class="pf-row">
+        <span>欠款金额：￥${fmt(bill.debt||0)}</span>
+        <span>联系电话：${esc(bill.contactPhone||'')}</span>
+        <span>联系地址：${esc(bill.contactAddr||'')}</span>
       </div>
-      <div class="preview-bottom">
-        <div class="brow"><span>收款人：${esc(bill.payee||'牛实在')}</span><span>联系电话：${esc(bill.contactPhone||'15333813314')}</span></div>
-        <div class="brow"><span>联系地址：${esc(bill.contactAddr||'郑州物流港')}</span></div>
-        <div class="brow"><span>经手人：-</span></div>
-      </div>
-      <div style="margin-top:14px;padding-top:10px;border-top:1px solid #eee;font-size:11px;color:#999;text-align:center">
-        创建账单 ${formatTime(bill.createdAt)}
+      <div class="pf-row" style="margin-top:4px">
+        <span>收款人：${esc(bill.payee||'')}</span>
+        <span>经手人：</span>
       </div>
     </div>
-    <div class="preview-footer">
-      <button class="btn-secondary" onclick="window.print()">打印</button>
-      <button class="btn-primary" onclick="markAsSent()">标记为已发送</button>
-    </div>
+  </div>
+  <div class="preview-footer">
+    <button class="btn-secondary" onclick="window.print()">打印</button>
+    <button class="btn-primary" onclick="markAsSent()">标记为已发送</button>
+  </div>
   `;
   showPage('preview');
 }

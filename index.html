@@ -101,24 +101,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hira
 .detail-actions{display:flex;gap:10px;margin-top:16px}
 .detail-actions .btn-primary,.detail-actions .btn-secondary{flex:1}
 
-/* 预览页 */
-.preview-page{padding:16px;background:var(--bg)}
-.preview-sheet{background:#fff;border-radius:10px;padding:20px 16px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.preview-header{text-align:center;margin-bottom:16px}
-.preview-header h1{font-size:20px;font-weight:700;color:var(--text);letter-spacing:2px}
-.preview-header .subtitle{font-size:12px;color:var(--text3);margin-top:4px}
-.preview-info{display:flex;justify-content:space-between;flex-wrap:wrap;font-size:13px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--text)}
-.preview-info p{width:48%;padding:3px 0}
-.preview-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
-.preview-table th{background:var(--bg);padding:8px 6px;text-align:left;font-weight:600;font-size:12px;border:1px solid var(--border)}
-.preview-table td{padding:8px 6px;border:1px solid var(--border)}
-.preview-total{display:flex;justify-content:space-between;padding:10px 0;border-top:2px double var(--text);font-size:15px;font-weight:700;margin-bottom:14px}
-.preview-pay{font-size:13px;margin-bottom:14px}
-.preview-pay .pay-row{display:flex;align-items:center;gap:6px;padding:3px 0}
-.preview-pay .checkbox{width:16px;height:16px;border:1px solid #999;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:2px}
-.preview-pay .checkbox.checked{background:var(--primary);color:#fff;border-color:var(--primary)}
-.preview-footer{display:flex;gap:10px;margin-top:16px}
+/* 预览页 - 打印风格 */
+.preview-page{padding:8px;background:#f0f0f0}
+.preview-sheet{background:#fff;padding:24px 20px;max-width:480px;margin:0 auto;box-shadow:0 1px 4px rgba(0,0,0,.15);font-family:'SimSun','STSong',serif}
+.preview-header{text-align:center;margin-bottom:18px;border-bottom:2px solid #000;padding-bottom:10px}
+.preview-header h1{font-size:22px;font-weight:700;color:#000;letter-spacing:6px}
+.preview-header .subtitle{font-size:11px;color:#666;margin-top:2px}
+.preview-info{font-size:14px;line-height:2.2;margin-bottom:14px}
+.preview-info p{margin:0;padding:0}
+.preview-info .bill-id{float:right;font-size:12px;color:#999;margin-top:-30px}
+.preview-table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:14px;border-top:2px solid #000;border-left:1px solid #000;border-right:1px solid #000}
+.preview-table th{background:none;padding:9px 6px;text-align:left;font-weight:700;font-size:13px;border-bottom:2px solid #000;border-right:1px solid #ddd}
+.preview-table th:last-child{border-right:none}
+.preview-table td{padding:9px 6px;border-bottom:1px solid #ddd;border-right:1px solid #ddd;font-size:14px}
+.preview-table td:last-child{border-right:none}
+.preview-total{display:flex;justify-content:space-between;padding:10px 0;border-top:2px double #000;font-size:15px;font-weight:700;margin-bottom:14px}
+.preview-summary{font-size:14px;line-height:2;margin-bottom:14px}
+.preview-summary .srow{display:flex;justify-content:space-between}
+.preview-bottom{border-top:1px solid #ccc;padding-top:14px;font-size:13px;line-height:2.2}
+.preview-bottom .brow{display:flex;gap:40px}
+.preview-bottom .brow span{min-width:120px}
+.preview-footer{display:flex;gap:10px;margin-top:16px;padding:0 8px}
 .preview-footer button{flex:1}
+@media print{
+  body * { visibility:hidden; }
+  .preview-page,.preview-page *{visibility:visible;}
+  .preview-page{position:absolute;left:0;top:0;width:100%;padding:0;background:#fff}
+  .preview-sheet{box-shadow:none;max-width:100%}
+  .preview-footer{display:none!important}
+}
 
 /* 搜索栏 */
 .search-bar{padding:10px 16px;background:var(--bg)}
@@ -692,18 +703,14 @@ function showPreview(id) {
     <div class="preview-sheet" id="previewSheet">
       <div class="preview-header">
         <h1>服 务 账 单</h1>
-        <div class="subtitle">账单${bill.paid?'已结清':'尚未结清'}</div>
+        <div class="subtitle">${bill.paid?'已结清':'尚未结清'}</div>
       </div>
-      <div style="text-align:center;margin-bottom:12px">
-        <span style="font-size:18px;font-weight:700">${esc(bill.customer)}</span>
-        <span style="float:right;font-size:12px;color:var(--text3)">${bill.id}</span>
-      </div>
+      <div style="text-align:right" class="bill-id">${bill.id}</div>
       <div class="preview-info">
-        <p>客户姓名：${esc(bill.customer)}</p>
-        <p>@${esc(bill.handler||'')}</p>
-        <p>客户电话：${esc(bill.phone||'-')}</p>
-        <p>日期：${bill.date}</p>
-        <p>客户地址：${esc(bill.address||'-')}</p>
+        <p><strong>客户姓名：</strong>${esc(bill.customer)}</p>
+        <p><strong>客户电话：</strong>${esc(bill.phone||'-')}</p>
+        <p><strong>日期：</strong>${bill.date}</p>
+        <p><strong>客户地址：</strong>${esc(bill.address||'-')}</p>
       </div>
       <table class="preview-table">
         <tr><th>序号</th><th>品名及规格</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th></tr>
@@ -717,23 +724,25 @@ function showPreview(id) {
             <td style="text-align:right">${fmt(it.qty*it.price)}</td>
           </tr>
         `).join('')}
-        <tr><td colspan="4" style="text-align:right;font-weight:600">合计金额（大写）</td><td colspan="2" style="font-weight:700">${toChineseNum(bill.total)}</td></tr>
-        <tr><td colspan="4" style="text-align:right">付款方式：</td><td colspan="2" style="font-size:12px">${payMethodStr}</td></tr>
-        <tr><td colspan="4" style="text-align:right;font-weight:700">￥</td><td colspan="2" style="font-weight:700;font-size:16px">${fmt(bill.actual)}</td></tr>
+        <tr><td colspan="5" style="text-align:right;font-weight:700">合计金额（大写）</td><td style="font-weight:700">${toChineseNum(bill.total)}</td></tr>
+        <tr><td colspan="5" style="text-align:right">付款方式：</td><td><span style="font-size:12px">☑ 微信　☐ 付现宝　☐ 转账　☐ 现金　☐ 其他</span></td></tr>
+        <tr><td colspan="5" style="text-align:right;font-weight:700">￥</td><td style="font-weight:700;font-size:17px">${fmt(bill.actual)}</td></tr>
       </table>
       <div class="preview-total">
         <span>应收金额：￥${fmt(bill.total)}</span>
         <span>优惠金额：￥${fmt(bill.discount||0)}</span>
       </div>
-      <div class="preview-total">
-        <span>实收金额：￥${fmt(bill.actual)}</span>
-        <span style="color:var(--red)">欠款金额：￥${fmt(bill.debt)}${bill.debt<=0?' | 标记为已结清':''}</span>
+      <div class="preview-summary">
+        <div class="srow"><span>实收金额：￥${fmt(bill.actual)}</span></div>
+        <div class="srow"><span style="color:var(--red)">欠款金额：￥${fmt(bill.debt)}${bill.debt<=0?' | 标记为已结清':''}</span></div>
       </div>
-      <div class="preview-pay">
-        <div class="pay-row"><span>经手人：</span><span>${esc(bill.handler||'-')}</span></div>
+      <div class="preview-bottom">
+        <div class="brow"><span>收款人：${esc(bill.payee||'牛实在')}</span><span>联系电话：${esc(bill.contactPhone||'15333813314')}</span></div>
+        <div class="brow"><span>联系地址：${esc(bill.contactAddr||'郑州物流港')}</span></div>
+        <div class="brow"><span>经手人：-</span></div>
       </div>
-      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">
-        <div class="detail-field"><span>●</span><span>创建账单</span><span class="value">${formatTime(bill.createdAt)}</span></div>
+      <div style="margin-top:14px;padding-top:10px;border-top:1px solid #eee;font-size:11px;color:#999;text-align:center">
+        创建账单 ${formatTime(bill.createdAt)}
       </div>
     </div>
     <div class="preview-footer">
@@ -760,31 +769,41 @@ function onAddrInput() {
   document.getElementById('addrResult').style.display = 'none';
 }
 function analyzeAddress() {
-  const addr = document.getElementById('fAddress').value.trim();
-  if (!addr) { alert('请先输入地址'); return; }
+  const rawAddr = document.getElementById('fAddress').value.trim();
+  if (!rawAddr) { alert('请先输入地址'); return; }
   const resultEl = document.getElementById('addrResult');
   const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾','内蒙古','广西','西藏','宁夏','新疆','香港','澳门'];
-  let province = '', city = '', detail = addr;
+  let province = '';
+  let rest = rawAddr;
   for (const p of provinces) {
-    if (addr.includes(p)) { province = p; detail = detail.replace(p, ''); break; }
+    if (rest.includes(p)) { province = p; rest = rest.replace(p, ''); break; }
   }
-  const cityMatch = detail.match(/(.+?(?:市|区|县|旗|盟|自治州|地区))/);
-  if (cityMatch) { city = cityMatch[1]; }
+  // 匹配市/区/县
+  const cityMatch = rest.match(/(.+?(?:市|区|县|旗|盟|自治州|地区))/);
+  let city = cityMatch ? cityMatch[1] : '';
   
   resultEl.style.display = 'block';
   if (province || city) {
-    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">已识别：</span>' +
-      (province ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">省：'+province+'</span>' : '') +
-      (city ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px">市/区：'+city+'</span>' : '');
-    // 自动格式化回填
+    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已识别：</span>' +
+      (province ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">'+province+'</span>' : '') +
+      (city ? '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px">'+city+'</span>' : '');
+    // 回填格式化地址
     let formatted = '';
     if (province) formatted += province;
-    if (city) { if (formatted && !city.startsWith('市') && !city.startsWith('区')) formatted += ' '; formatted += city; }
-    const remaining = addr.replace(province,'').replace(city,'').trim();
-    if (remaining) formatted += ' ' + remaining;
+    if (city) {
+      // 如果省名不以市/区结尾，加空格
+      if (formatted && !city.startsWith('市') && !city.startsWith('区')) formatted += ' ';
+      formatted += city;
+    }
+    // 剩余部分
+    let remaining = rawAddr;
+    remaining = remaining.replace(province, '').replace(city, '').replace(/\s+/g, ' ').trim();
+    if (remaining && remaining !== province) {
+      formatted += ' ' + remaining;
+    }
     document.getElementById('fAddress').value = formatted.trim();
   } else {
-    resultEl.innerHTML = '<span style="color:var(--orange)">未能识别省市区，地址保持原样</span>';
+    resultEl.innerHTML = '<span style="color:var(--orange)">未能识别省市区</span>';
   }
 }
 

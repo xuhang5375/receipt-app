@@ -1,90 +1,1083 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>食材采购</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>账单管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#07c160;--primary-dark:#06ad56;--bg:#f5f6fa;--white:#fff;--text:#333;--text2:#666;--text3:#999;--border:#eee;--red:#e74c3c;--orange:#f39c12}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB',sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+
+/* 顶部导航 */
+.header{background:var(--primary);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header .back{font-size:20px;width:32px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.header h1{font-size:17px;font-weight:600;flex:1;text-align:center}
+.header .action{font-size:15px;cursor:pointer;opacity:.9}
+
+/* 页面容器 */
+.page{display:none;flex:1;padding-bottom:60px}
+.page.active{display:block}
+
+/* 底部Tab */
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding:4px 0;padding-bottom:max(4px,env(safe-area-inset-bottom))}
+.tabbar .tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 0;color:var(--text2);cursor:pointer;font-size:11px}
+.tabbar .tab.active{color:var(--primary)}
+.tabbar .tab .icon{font-size:22px;line-height:1.2}
+.tabbar .tab .label{margin-top:2px}
+
+/* 首页 - 账单列表 */
+.bill-list{padding:12px 16px}
+.bill-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.bill-card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.bill-card .name{font-size:15px;font-weight:600}
+.bill-card .id{font-size:12px;color:var(--text3)}
+.bill-card .info{display:flex;gap:16px;font-size:12px;color:var(--text2);margin-bottom:8px}
+.bill-card .info span{display:flex;align-items:center;gap:3px}
+.bill-card .amount-row{display:flex;justify-content:space-between;align-items:center}
+.bill-card .amount{font-size:18px;font-weight:700;color:var(--red)}
+.bill-card .tags{display:flex;gap:6px}
+.tag{font-size:11px;padding:2px 8px;border-radius:10px}
+.tag.unpaid{background:#fff3e0;color:var(--orange)}
+.tag.paid{background:#e8f5e9;color:var(--primary)}
+.tag.unsent{background:#fce4ec;color:var(--red)}
+.tag.sent{background:#e3f2fd;color:#1976d2}
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.empty p{font-size:14px}
+
+/* 开单页 */
+.form-page{padding:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.form-group input,.form-group textarea,.form-group select{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--primary)}
+.form-group textarea{resize:vertical;min-height:60px}
+.row2{display:flex;gap:10px}
+.row2 .form-group{flex:1}
+
+/* 商品列表 */
+.items-section{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px}
+.items-section .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.items-section .header span{font-weight:600;font-size:15px}
+.btn-add-item{background:none;border:1px dashed var(--primary);color:var(--primary);padding:6px 16px;border-radius:16px;font-size:13px;cursor:pointer}
+.item-row{margin-bottom:12px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--primary)}
+.item-row .iline{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.item-row .iline:last-child{margin-bottom:0}
+.item-row input,.item-row select{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:14px;outline:none;background:#fff}
+.item-row .iname{flex:1;min-width:0}
+.item-row .iunit{width:80px;flex-shrink:0}
+.item-row .iqty{width:70px;flex-shrink:0}
+.item-row .iprice{width:80px;flex-shrink:0}
+.item-row .idel{width:26px;height:26px;border:none;background:#fee;color:var(--red);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* 汇总 */
+.summary{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px}
+.summary .row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+.summary .row.total{border-top:1px solid var(--border);margin-top:6px;padding-top:10px;font-size:16px;font-weight:700;color:var(--red)}
+
+/* 按钮 */
+.btn-primary{width:100%;background:var(--primary);color:#fff;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:600;cursor:pointer}
+.btn-primary:active{background:var(--primary-dark)}
+.btn-secondary{width:100%;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:10px;padding:12px;font-size:15px;cursor:pointer;margin-top:8px}
+.btn-sm{padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:none}
+.btn-green{background:var(--primary);color:#fff}
+.btn-blue{background:#1976d2;color:#fff}
+.btn-gray{background:#eee;color:var(--text2)}
+
+/* 详情页 */
+.detail-page{padding:16px}
+.detail-card{background:#fff;border-radius:10px;padding:16px;margin-bottom:12px}
+.detail-card h2{font-size:16px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.detail-field{display:flex;justify-content:space-between;padding:7px 0;font-size:13px}
+.detail-field .label{color:var(--text2)}
+.detail-field .value{font-weight:500;text-align:right;max-width:60%}
+.detail-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.detail-table th{background:var(--bg);padding:8px 6px;text-align:left;font-weight:600;font-size:12px;color:var(--text2)}
+.detail-table td{padding:8px 6px;border-bottom:1px solid var(--border)}
+.detail-table .num-col{text-align:center;width:40px}
+.detail-table .qty-col,.detail-table .price-col,.detail-table .amt-col{text-align:right;width:60px}
+.detail-actions{display:flex;gap:10px;margin-top:16px}
+.detail-actions .btn-primary,.detail-actions .btn-secondary{flex:1}
+
+/* 预览页 - 牛实在工厂打印风格 */
+.preview-page{padding:12px 8px;background:#e8e8e8;min-height:100vh}
+.preview-sheet{background:#fff;padding:24px 20px;max-width:600px;margin:0 auto;border:2px solid #222;font-family:'SimSun','STSong','Songti SC','Microsoft YaHei',serif;box-sizing:border-box;color:#000}
+.preview-header{text-align:center;margin-bottom:4px;position:relative}
+.preview-header h1{font-size:28px;font-weight:900;color:#000;letter-spacing:6px;margin:6px 0 2px}
+.preview-bill-no{text-align:right;font-size:15px;color:#8B4513;margin-bottom:6px;font-family:'Courier New',monospace;letter-spacing:1px;font-weight:700}
+.preview-info{font-size:15px;line-height:2.2;margin-bottom:10px}
+.preview-info p{margin:0;padding:0}
+.preview-info strong{font-weight:normal;display:inline-block;min-width:95px;text-align-last:justify}
+.preview-table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:0;border:2px solid #222}
+.preview-table th{background:#fff;padding:9px 6px;text-align:center;font-weight:700;font-size:14px;border:1px solid #222;color:#000}
+.preview-table td{padding:8px 6px;border:1px solid #222;text-align:center;font-size:14px;color:#000}
+.preview-table td:nth-child(2){text-align:left;font-weight:500}
+.preview-summary{font-size:15px;line-height:2;margin-bottom:0;border:2px solid #222;border-top:none}
+.preview-summary p{margin:0;padding:8px 12px;display:flex;justify-content:space-between}
+.preview-summary p.total-row{border-top:2px solid #222;font-weight:700}
+.preview-footer-text{font-size:14px;line-height:2.2;margin-top:10px}
+.preview-footer-text p{margin:2px 0}
+.preview-footer-text .row3{display:flex;justify-content:space-between;gap:20px}
+.preview-footer-text .row3 span{flex:1}
+.preview-footer{display:flex;gap:10px;margin-top:16px;padding:0 8px}
+.preview-footer button{flex:1}
+@media print{
+  body * { visibility:hidden; }
+  .preview-page,.preview-page *{visibility:visible;}
+  .preview-page{position:absolute;left:0;top:0;width:100%;padding:0;background:#fff}
+  .preview-sheet{box-shadow:none;max-width:100%}
+  .preview-footer{display:none!important}
+}
+
+/* 搜索栏 */
+.search-bar{padding:10px 16px;background:var(--bg)}
+.search-bar input{width:100%;border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;outline:none;background:#fff}
+
+/* 筛选 */
+.filter-bar{display:flex;gap:8px;padding:0 16px 10px;overflow-x:auto}
+.filter-bar .chip{padding:5px 14px;border-radius:16px;font-size:12px;white-space:nowrap;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text2)}
+.filter-bar .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* 弹窗 */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 16px;max-height:80vh;overflow-y:auto}
+.modal h3{text-align:center;font-size:16px;margin-bottom:16px}
+.modal .actions{display:flex;gap:10px;margin-top:16px}
+.modal .actions button{flex:1;padding:10px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
+.modal .btn-cancel{background:#f5f5f5;color:var(--text2)}
+.modal .btn-confirm{background:var(--primary);color:#fff}
+
+/* 统计 */
+.stats-bar{display:flex;gap:10px;padding:12px 16px}
+.stat-card{flex:1;background:#fff;border-radius:10px;padding:12px;text-align:center}
+.stat-card .val{font-size:18px;font-weight:700;color:var(--primary)}
+.stat-card .lab{font-size:11px;color:var(--text3);margin-top:2px}
+</style>
+<script src="html2canvas.min.js"></script>
 </head>
 <body>
-    <!-- 顶部搜索栏 -->
-    <header class="top-header">
-        <div class="search-bar">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="请输入商品编码、名称、条形码" autocomplete="off">
-            <span class="search-clear" id="searchClear" style="display:none;">✕</span>
-        </div>
-        <a href="admin.html" class="admin-link">管理</a>
-    </header>
+<div class="app">
 
-    <!-- 主体：左侧分类 + 右侧商品列表 -->
-    <div class="main-body">
-        <!-- 左侧分类导航 -->
-        <nav class="category-nav" id="categoryNav">
-            <!-- JS 动态生成 -->
-        </nav>
+<!-- 首页 -->
+<div class="page active" id="page-home">
+  <div class="header">
+    <div class="back" style="visibility:hidden">‹</div>
+    <h1>服务账单</h1>
+    <div class="action" onclick="showPage('new')">＋</div>
+  </div>
 
-        <!-- 右侧商品列表 -->
-        <section class="product-list" id="productList">
-            <div class="category-title" id="currentCategoryTitle">全部</div>
-            <div class="products" id="products">
-                <!-- JS 动态生成 -->
-            </div>
-        </section>
+  <!-- 统计 -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="val" id="stat-total">0</div><div class="lab">总金额</div></div>
+    <div class="stat-card"><div class="val" id="stat-unpaid">0</div><div class="lab">未结清</div></div>
+    <div class="stat-card"><div class="val" id="stat-count">0</div><div class="lab">账单数</div></div>
+  </div>
+
+  <!-- 搜索 -->
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="搜索客户名/商品..." oninput="renderBillList()">
+  </div>
+
+  <!-- 筛选 -->
+  <div class="filter-bar" id="filterBar">
+    <div class="chip active" data-filter="all" onclick="setFilter(this)">全部</div>
+    <div class="chip" data-filter="unpaid" onclick="setFilter(this)">未结清</div>
+    <div class="chip" data-filter="unpaid_unsent" onclick="setFilter(this)">未结清未发送</div>
+    <div class="chip" data-filter="paid" onclick="setFilter(this)">已结清</div>
+  </div>
+
+  <div class="bill-list" id="billList"></div>
+</div>
+
+<!-- 新建/编辑页 -->
+<div class="page" id="page-new">
+  <div class="header">
+    <div class="back" onclick="showPage('home')">‹</div>
+    <h1 id="formTitle">新建账单</h1>
+    <div class="action" style="visibility:hidden">　</div>
+  </div>
+  <div class="form-page">
+    <div class="form-group">
+      <label>客户姓名 *</label>
+      <input type="text" id="fCustomer" placeholder="输入客户姓名">
+    </div>
+    <div class="row2">
+      <div class="form-group">
+        <label>联系电话</label>
+        <input type="tel" id="fPhone" placeholder="手机号">
+      </div>
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="fDate">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>收货地址</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="fAddress" placeholder="输入地址后点击分析" style="flex:1" oninput="onAddrInput()">
+        <button type="button" class="btn-sm btn-green" onclick="analyzeAddress()" style="white-space:nowrap;padding:8px 14px;font-size:13px">一键分析</button>
+      </div>
+      <div id="addrResult" style="margin-top:6px;font-size:12px;color:var(--text2);display:none"></div>
     </div>
 
-    <!-- 商品详情弹窗 -->
-    <div class="modal-overlay" id="detailModal" style="display:none;">
-        <div class="modal-box">
-            <button class="modal-close" onclick="closeDetailModal()">✕</button>
-            <div id="modalBody"></div>
-        </div>
+
+    <div class="items-section">
+      <div class="header">
+        <span>商品明细</span>
+        <button class="btn-add-item" onclick="addItem()">＋ 添加商品</button>
+      </div>
+      <div id="itemsContainer"></div>
     </div>
 
-    <script>
-    // 动态加载 supabase-full.js，带重试
-    function loadScript(src, retries = 3) {
-        return new Promise((resolve, reject) => {
-            function tryLoad(attempt) {
-                const s = document.createElement('script');
-                s.src = src + '?v=' + Date.now(); // 防缓存
-                s.onload = () => resolve();
-                s.onerror = () => {
-                    if (attempt < retries) {
-                        console.warn('脚本加载失败，重试...', src, attempt + 1);
-                        setTimeout(() => tryLoad(attempt + 1), 1000);
-                    } else {
-                        reject(new Error('加载失败: ' + src));
-                    }
-                };
-                document.head.appendChild(s);
-            }
-            tryLoad(0);
-        });
+    <div class="summary">
+      <div class="row"><span>合计金额（大写）</span><span id="sChinese">零元整</span></div>
+      <div class="row total"><span>￥</span><span id="sTotal">0.00</span></div>
+    </div>
+
+    <div class="form-group">
+      <label>优惠金额</label>
+      <input type="number" id="fDiscount" value="0" min="0" step="0.01" oninput="calcTotal()">
+    </div>
+    <div class="summary">
+      <div class="row total"><span>实收金额</span><span id="sActual">0.00</span></div>
+      <div class="row"><span>欠款金额</span><span id="sDebt" style="color:var(--red)">0.00</span></div>
+    </div>
+
+    <button class="btn-primary" onclick="saveBill()" style="margin-top:16px">保存账单</button>
+    <button class="btn-secondary" onclick="saveAndPreview()">预览 / 发送客户</button>
+  </div>
+</div>
+
+<!-- 详情页 -->
+<div class="page" id="page-detail">
+  <div class="header">
+    <div class="back" onclick="showPage('home')">‹</div>
+    <h1>收据详情</h1>
+    <div class="action" id="detailMenu" onclick="showDetailMenu()">···</div>
+  </div>
+  <div class="detail-page" id="detailContent"></div>
+</div>
+
+<!-- 预览页 -->
+<div class="page" id="page-preview">
+  <div class="header">
+    <div class="back" onclick="goBackFromPreview()">‹</div>
+    <h1>服务账单</h1>
+    <div class="action" style="visibility:hidden">　</div>
+  </div>
+  <div class="preview-page" id="previewContent"></div>
+</div>
+
+<!-- 底部Tab（首页显示） -->
+<div class="tabbar" id="tabbar">
+  <div class="tab active" onclick="switchTab(this,'home')"><div class="icon">🏠</div><div class="label">回首页</div></div>
+  <div class="tab" onclick="showPage('new')"><div class="icon">💾</div><div class="label">开单</div></div>
+</div>
+
+<!-- 操作菜单弹窗 -->
+<div class="modal-overlay" id="menuModal">
+  <div class="modal">
+    <h3>操作菜单</h3>
+    <div id="menuOptions" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="actions">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function digitUppercase(n) {
+  const fraction = ['角', '分'];
+  const digit = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+  const unit = [['元', '万', '亿'], ['', '拾', '佰', '仟']];
+  const head = n < 0 ? '欠' : '';
+  n = Math.abs(n);
+  let s = '';
+  for (let i = 0; i < fraction.length; i++) {
+    s += (digit[Math.floor(n * 10 * Math.pow(10, i)) % 10] + fraction[i]).replace(/零./, '');
+  }
+  s = s || '整';
+  n = Math.floor(n);
+  for (let i = 0; i < unit[0].length && n > 0; i++) {
+    let p = '';
+    for (let j = 0; j < unit[1].length && n > 0; j++) {
+      p = digit[n % 10] + unit[1][j] + p;
+      n = Math.floor(n / 10);
     }
+    s = p.replace(/(零.)*零$/, '').replace(/^$/, '零') + unit[0][i] + s;
+  }
+  return head + s.replace(/(零.)*零元/, '元').replace(/(零.)+/g, '零').replace(/^整$/, '零元整');
+}
 
-    async function initApp() {
-        try {
-            await loadScript('js/supabase-full.js');
-            const SUPABASE_URL = 'https://infsqrfqksvqzlapvott.supabase.co';
-            const SUPABASE_ANON_KEY = 'sb_publishable_2z92LEUAiZf6smg9aiufFg_p16OStvD';
-            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            window.TABLE_NAME = 'food_showcase_products';
-            // 加载主逻辑
-            await loadScript('js/app.js');
-        } catch (err) {
-            console.error('初始化失败:', err);
-            const el = document.getElementById('products');
-            if (el) {
-                el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>页面加载失败，<a href="javascript:location.reload()">点击刷新</a></p></div>';
-            } else {
-                document.body.innerHTML = '<div style="padding:40px;text-align:center;"><p>⚠️ 加载失败，<a href="javascript:location.reload()">点击刷新</a></p></div>';
-            }
+// ===== 数据层 =====
+const DB_KEY = 'receipt_bills';
+let bills = [];
+let currentBillId = null;
+let currentFilter = 'all';
+let editingBill = null;
+
+function loadBills() {
+  try { bills = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch(e) { bills = []; }
+}
+function saveBills() {
+  localStorage.setItem(DB_KEY, JSON.stringify(bills));
+}
+
+// ===== 工具函数 =====
+function uid() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const M = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+  const H = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  const prefix = 'DZ'; // 大写字母前缀
+  const rand = String(Math.floor(Math.random()*1000)).padStart(3,'0');
+  return prefix + y + M + d + H + m + s + rand;
+}
+function fmt(n) {
+  return (parseFloat(n)||0).toFixed(2);
+}
+function toChineseNum(n) {
+  const nums = ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  const units = ['','拾','佰','仟'];
+  const bigUnits = ['','万','亿'];
+  n = Math.round(parseFloat(n)*100)/100;
+  if (n === 0) return '零元整';
+  const intPart = Math.floor(n);
+  const decPart = Math.round((n - intPart) * 100);
+  let s = '';
+  // 整数部分
+  if (intPart > 0) {
+    let intStr = intPart.toString();
+    let parts = [];
+    while (intStr.length > 0) {
+      let chunk = intStr.slice(-4);
+      intStr = intStr.slice(0, -4);
+      let cs = '';
+      for (let i = 0; i < chunk.length; i++) {
+        let digit = parseInt(chunk[i]);
+        let pos = chunk.length - 1 - i;
+        if (digit === 0) {
+          if (cs && !cs.endsWith('零')) cs += '零';
+        } else {
+          cs += nums[digit] + units[pos];
         }
+      }
+      if (cs) parts.unshift(cs.replace(/零+$/, '') + bigUnits[parts.length]);
     }
+    s += parts.join('');
+    s += '元';
+  } else {
+    s = '零元';
+  }
+  // 小数
+  if (decPart > 0) {
+    const jiao = Math.floor(decPart / 10);
+    const fen = decPart % 10;
+    if (jiao > 0) s += nums[jiao] + '角';
+    else if (intPart > 0) s += '零';
+    if (fen > 0) s += nums[fen] + '分';
+  } else {
+    s += '整';
+  }
+  return s;
+}
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 
-    initApp();
-    </script>
+// ===== 页面切换 =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tabbar').style.display = name === 'home' ? 'flex' : 'none';
+  if (name === 'home') renderBillList();
+  if (name === 'new' && !editingBill) resetForm();
+}
+function goBackFromPreview() {
+  if (currentBillId) showPage('detail'); else showPage('home');
+}
+function switchTab(el, page) {
+  document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (page === 'new') showPage('new');
+}
+
+// ===== 筛选 =====
+function setFilter(el) {
+  document.querySelectorAll('.filter-bar .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = el.dataset.filter;
+  renderBillList();
+}
+
+// ===== 商品行操作 =====
+let itemIndex = 0;
+function addItem(data) {
+  data = data || { name:'', unit:'斤', qty:1, price:0 };
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.id = 'item_' + itemIndex;
+  div.innerHTML =
+    '<div class="iline"><input class="iname" placeholder="输入产品名称" value="'+esc(data.name)+'"></div>' +
+    '<div class="iline">' +
+      '<select class="iunit"><option value="斤"'+(data.unit==='斤'?' selected':'')+'>斤</option><option value="袋"'+(data.unit==='袋'?' selected':'')+'>袋</option><option value="箱"'+(data.unit==='箱'?' selected':'')+'>箱</option></select>' +
+      '<input class="iqty" type="number" placeholder="数量" value="'+data.qty+'" min="0" step="any" oninput="calcTotal()">' +
+      '<input class="iprice" type="number" placeholder="单价" value="'+(data.price||0)+'" min="0" step="any" oninput="calcTotal()">' +
+      '<button class="idel" onclick="removeItem('+itemIndex+')">×</button>' +
+    '</div>';
+  document.getElementById('itemsContainer').appendChild(div);
+  itemIndex++;
+  calcTotal();
+}
+function removeItem(id) {
+  const el = document.getElementById('item_' + id);
+  if (el) { el.remove(); calcTotal(); }
+}
+function esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ===== 计算汇总 =====
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('#itemsContainer .item-row').forEach(row => {
+    const q = parseFloat(row.querySelector('.iqty').value) || 0;
+    const p = parseFloat(row.querySelector('.iprice').value) || 0;
+    total += q * p;
+  });
+  const discount = parseFloat(document.getElementById('fDiscount').value) || 0;
+  const actual = Math.max(0, total - discount);
+  const debt = actual;
+  document.getElementById('sTotal').textContent = fmt(total);
+  document.getElementById('sChinese').textContent = toChineseNum(total);
+  document.getElementById('sActual').textContent = fmt(actual);
+  document.getElementById('sDebt').textContent = fmt(debt);
+  return { total, discount, actual, debt };
+}
+
+// ===== 表单重置 =====
+function resetForm() {
+  editingBill = null;
+  document.getElementById('formTitle').textContent = '新建账单';
+  document.getElementById('fCustomer').value = '';
+  document.getElementById('fPhone').value = '';
+  document.getElementById('fDate').value = todayStr();
+  document.getElementById('fAddress').value = '';
+  document.getElementById('fDiscount').value = '0';
+  document.getElementById('itemsContainer').innerHTML = '';
+  itemIndex = 0;
+  addItem();
+  calcTotal();
+}
+
+// ===== 保存账单 =====
+function saveBill() {
+  const customer = document.getElementById('fCustomer').value.trim();
+  if (!customer) { alert('请输入客户姓名'); return; }
+  const items = [];
+  document.querySelectorAll('#itemsContainer .item-row').forEach(row => {
+    const name = row.querySelector('.iname').value.trim();
+    if (!name) return;
+    items.push({
+      name,
+      unit: row.querySelector('.iunit').value.trim() || '斤',
+      qty: parseFloat(row.querySelector('.iqty').value) || 0,
+      price: parseFloat(row.querySelector('.iprice').value) || 0
+    });
+  });
+  if (items.length === 0) { alert('请至少添加一个商品'); return; }
+  const { total, discount, actual } = calcTotal();
+  const payMethods = ['现金']; // 默认
+
+  const bill = {
+    id: editingBill ? editingBill.id : uid(),
+    customer,
+    phone: document.getElementById('fPhone').value.trim(),
+    date: document.getElementById('fDate').value || todayStr(),
+    address: document.getElementById('fAddress').value.trim(),
+    handler: '',
+    items,
+    total,
+    discount,
+    actual,
+    debt: actual,
+    paid: actual <= 0,
+    sent: false,
+    payMethods,
+    contactPhone: '',
+    contactAddr: '',
+    payee: '',
+    createdAt: editingBill ? editingBill.createdAt : new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (editingBill) {
+    const idx = bills.findIndex(b => b.id === bill.id);
+    if (idx >= 0) bills[idx] = bill;
+  } else {
+    bills.unshift(bill);
+  }
+  saveBills();
+  editingBill = null;
+  currentBillId = bill.id;
+  alert('保存成功！');
+  showPage('detail');
+  renderDetail(bill);
+}
+
+function saveAndPreview() {
+  const customer = document.getElementById('fCustomer').value.trim();
+  if (!customer) { alert('请输入客户姓名'); return; }
+  saveBill(); // 会设置currentBillId并跳到详情
+  setTimeout(() => showPreview(currentBillId), 300);
+}
+
+// ===== 账单列表渲染 =====
+function renderBillList() {
+  const kw = document.getElementById('searchInput').value.toLowerCase();
+  let list = bills.filter(b => {
+    if (kw) {
+      const matchName = b.customer.toLowerCase().includes(kw);
+      const matchItem = b.items.some(it => it.name.toLowerCase().includes(kw));
+      if (!matchName && !matchItem) return false;
+    }
+    if (currentFilter === 'unpaid') return b.debt > 0;
+    if (currentFilter === 'unpaid_unsent') return b.debt > 0 && !b.sent;
+    if (currentFilter === 'paid') return b.paid;
+    return true;
+  });
+
+  const container = document.getElementById('billList');
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="icon">📋</div><p>暂无账单</p><p style="font-size:12px;margin-top:4px">点击右上角 ＋ 创建新账单</p></div>';
+    updateStats(list);
+    return;
+  }
+
+  container.innerHTML = list.map(b => `
+    <div class="bill-card" onclick="viewBill('${b.id}')">
+      <div class="top">
+        <span class="name">${esc(b.customer)}</span>
+        <div class="tags">
+          <span class="tag ${b.paid?'paid':'unpaid'}">${b.paid?'已结清':'未结清'}</span>
+          <span class="tag ${b.sent?'sent':'unsent'}">${b.sent?'已发送':'未发送'}</span>
+        </div>
+      </div>
+      <div class="info">
+        <span>📞 ${esc(b.phone||'-')}</span>
+        <span>📍 ${esc(b.address||'-')}</span>
+        <span>🕐 ${b.date}</span>
+      </div>
+      <div class="amount-row">
+        <span style="font-size:12px;color:var(--text2)">
+          ${b.items.map(i=>`${i.name} ${i.qty}/${i.unit}*${i.price}`).join('、')}
+        </span>
+        <span class="amount">￥${fmt(b.actual)}</span>
+      </div>
+    </div>
+  `).join('');
+
+  updateStats(list);
+}
+
+function updateStats(list) {
+  const total = list.reduce((s,b)=>s+b.actual,0);
+  const unpaid = list.filter(b=>b.debt>0).reduce((s,b)=>s+b.debt,0);
+  document.getElementById('stat-total').textContent = '￥'+fmt(total);
+  document.getElementById('stat-unpaid').textContent = '￥'+fmt(unpaid);
+  document.getElementById('stat-count').textContent = list.length;
+}
+
+// ===== 查看详情 =====
+function viewBill(id) {
+  const bill = bills.find(b => b.id === id);
+  if (!bill) return;
+  currentBillId = id;
+  renderDetail(bill);
+  showPage('detail');
+}
+
+function renderDetail(bill) {
+  const payMethodStr = (bill.payMethods||[]).join('、') || '-';
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-card">
+      <h2>收据明细</h2>
+      <div class="detail-field"><span class="label">票据批号</span><span class="value">${bill.id}</span></div>
+      <div class="detail-field"><span class="label">客户姓名</span><span class="value">${esc(bill.customer)}<span style="float:right;font-size:12px;color:var(--text3)">@${esc(bill.handler||'')}</span></span></div>
+      <div class="detail-field"><span class="label">客户电话</span><span class="value">${esc(bill.phone||'-')}</span></div>
+      <div class="detail-field"><span class="label">客户地址</span><span class="value">${esc(bill.address||'-')}</span></div>
+      <div class="detail-field"><span class="label">日期</span><span class="value">${bill.date}</span></div>
+    </div>
+    <div class="detail-card">
+      <h2>收据明细</h2>
+      <table class="detail-table">
+        <tr><th>序号</th><th>品名及规格</th><th>单位</th><th class="qty-col">数量</th><th class="price-col">单价</th><th class="amt-col">金额</th></tr>
+        ${bill.items.map((it,i)=>`
+          <tr>
+            <td class="num-col">${i+1}</td>
+            <td>${esc(it.name)}</td>
+            <td>${esc(it.unit)}</td>
+            <td class="qty-col">${it.qty}</td>
+            <td class="price-col">${fmt(it.price)}</td>
+            <td class="amt-col">${fmt(it.qty*it.price)}</td>
+          </tr>
+        `).join('')}
+        <tr style="font-weight:700"><td colspan="5">合计金额（大写）</td><td>${toChineseNum(bill.total)}</td></tr>
+        <tr style="font-weight:700"><td colspan="5">付款方式：<span style="font-weight:normal;font-size:12px">${payMethodStr}</span></td><td>￥${fmt(bill.actual)}</td></tr>
+      </table>
+      <div style="margin-top:12px;font-size:13px">
+        <div class="detail-field"><span class="label">应收金额</span><span class="value">￥${fmt(bill.total)}</span></div>
+        <div class="detail-field"><span class="label">优惠金额</span><span class="value">￥${fmt(bill.discount||0)}</span></div>
+        <div class="detail-field"><span class="label">实收金额</span><span class="value" style="font-weight:700">￥${fmt(bill.actual)}</span></div>
+        <div class="detail-field"><span class="label">欠款金额</span><span class="value" style="color:var(--red);font-weight:700">￥${fmt(bill.debt)}${bill.debt<=0?' | 标记为已结清':''}</span></div>
+        <div class="detail-field"><span class="label">经手人</span><span class="value">${esc(bill.handler||'-')}</span></div>
+      </div>
+    </div>
+    <div class="detail-card">
+      <h2>账单履历</h2>
+      <div style="font-size:13px">
+        <div class="detail-field"><span style="color:var(--primary)">●</span><span>创建账单</span><span class="value">${formatTime(bill.createdAt)}</span></div>
+        ${bill.updatedAt !== bill.createdAt ? `<div class="detail-field"><span style="color:var(--text3)">●</span><span>修改</span><span class="value">${formatTime(bill.updatedAt)}</span></div>` : ''}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn-secondary" onclick="editCurrentBill()">修改</button>
+      <button class="btn-primary" onclick="showPreview('${bill.id}')">预览/发送客户</button>
+    </div>
+  `;
+}
+
+function formatTime(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+// ===== 编辑当前账单 =====
+function editCurrentBill() {
+  const bill = bills.find(b => b.id === currentBillId);
+  if (!bill) return;
+  editingBill = JSON.parse(JSON.stringify(bill));
+  document.getElementById('formTitle').textContent = '编辑账单';
+  document.getElementById('fCustomer').value = bill.customer;
+  document.getElementById('fPhone').value = bill.phone || '';
+  document.getElementById('fDate').value = bill.date;
+  document.getElementById('fAddress').value = bill.address || '';
+  document.getElementById('fDiscount').value = bill.discount || 0;
+
+  document.getElementById('itemsContainer').innerHTML = '';
+  itemIndex = 0;
+  (bill.items||[]).forEach(it => addItem(it));
+  if ((bill.items||[]).length === 0) addItem();
+
+  calcTotal();
+  showPage('new');
+}
+
+// ===== 操作菜单 =====
+function showDetailMenu() {
+  const bill = bills.find(b => b.id === currentBillId);
+  if (!bill) return;
+  const opts = document.getElementById('menuOptions');
+  opts.innerHTML = `
+    <button class="btn-confirm" style="width:100%" onclick="deleteBill()">删除账单</button>
+    <button class="btn-confirm" style="width:100%;background:${bill.paid?'#999':'var(--primary)'}" onclick="togglePaidStatus()">${bill.paid?'标记为未结清':'标记为已结清'}</button>
+    <button class="btn-confirm" style="width:100%;background:${bill.sent?'#999':'#1976d2'}" onclick="toggleSentStatus()">${bill.sent?'标记为未发送':'标记为已发送'}</button>
+  `;
+  document.getElementById('menuModal').classList.add('show');
+}
+function closeModal() { document.getElementById('menuModal').classList.remove('show'); }
+
+function deleteBill() {
+  if (!confirm('确定删除此账单？')) return;
+  bills = bills.filter(b => b.id !== currentBillId);
+  saveBills();
+  closeModal();
+  showPage('home');
+}
+function togglePaidStatus() {
+  const bill = bills.find(b => b.id === currentBillId);
+  if (!bill) return;
+  bill.paid = !bill.paid;
+  if (bill.paid) bill.debt = 0;
+  else bill.debt = bill.actual;
+  bill.updatedAt = new Date().toISOString();
+  saveBills();
+  closeModal();
+  renderDetail(bill);
+}
+function toggleSentStatus() {
+  const bill = bills.find(b => b.id === currentBillId);
+  if (!bill) return;
+  bill.sent = !bill.sent;
+  bill.updatedAt = new Date().toISOString();
+  saveBills();
+  closeModal();
+  renderDetail(bill);
+}
+
+// ===== 预览页 =====
+function showPreview(id) {
+  const bill = bills.find(b => b.id === id);
+  if (!bill) return;
+  currentBillId = id;
+  const payMethodStr = (bill.payMethods||[]).join('、') || '-';
+
+  // 显示HTML预览（牛实在工厂打印风格）
+  const billNo = 'DZ' + bill.date.replace(/-/g,'') + String(Math.floor(Math.random()*1000)).padStart(3,'0');
+  const items = bill.items || [];
+  const emptyRows = Math.max(0, 5 - items.length);
+  document.getElementById('previewContent').innerHTML = `
+    <div class="preview-page">
+      <div class="preview-sheet" id="previewSheet">
+        <div class="preview-header">
+          <h1>发 货 单</h1>
+        </div>
+        <div class="preview-bill-no">${billNo}</div>
+        <div class="preview-info">
+          <p><strong>客户姓名：</strong>${esc(bill.customer)}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;客户电话：${esc(bill.phone||'-')}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;日期：${bill.date}</p>
+          <p><strong>客户地址：</strong>${esc(bill.address||'-')}</p>
+        </div>
+        <table class="preview-table">
+          <thead>
+            <tr><th style="width:50px">序号</th><th>品名及规格</th><th style="width:55px">单位</th><th style="width:60px">数量</th><th style="width:70px">单价</th><th style="width:85px">金额</th></tr>
+          </thead>
+          <tbody>
+            ${items.map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name)}</td><td>${esc(it.unit||'')}</td><td>${it.qty}</td><td>${Number(it.price)}</td><td>${(it.qty*it.price).toFixed(2)}</td></tr>`).join('')}
+            ${Array(emptyRows).fill(0).map((_,i)=>`<tr><td>${items.length+i+1}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="preview-summary">
+          <p><span style="flex:0 0 auto">合计金额（大写）</span><span style="text-align:right">${digitUppercase(bill.total)}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>¥${bill.total.toFixed(2)}</b></span></p>
+          <p><span>付款方式：</span><span>${['微信','支付宝','转账','现金','其他'].map(m=>`<label style="margin-right:10px;cursor:pointer"><input type="checkbox" ${(bill.payMethods||[]).includes(m)?'checked':''} disabled style="vertical-align:middle;margin-right:2px">${m}</label>`).join('')}</span></p>
+        </div>
+        <div class="preview-footer-text">
+          <p>收款人：牛实在工厂</p>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:16px;padding:12px;">
+        <button onclick="generateBigImage()" style="background:#07c160;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600;">📷 点击查看/保存大图</button>
+      </div>
+    </div>
+  `;
+      <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px dashed #ddd;">
+        <button onclick="generateBigImage()" style="background:none;border:none;color:#07c160;font-size:15px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:8px 16px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          点击查看大图
+        </button>
+      </div>
+    </div>
+  `;
+  document.getElementById('page-preview').classList.add('active');
+  document.getElementById('tabbar').style.display = 'none';
+}
+
+function generateBigImage() {
+  const sheet = document.getElementById('previewSheet');
+  if (!sheet) return;
+  
+  html2canvas(sheet, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false
+  }).then(canvas => {
+    // 显示大图弹窗
+    const modal = document.createElement('div');
+    modal.id = 'bigImageModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="position:absolute;top:16px;right:16px;z-index:10001;">
+        <button onclick="closeBigImage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;width:100%;">
+        <img id="bigImage" src="${canvas.toDataURL('image/png')}" style="max-width:100%;max-height:100%;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+      </div>
+      <div style="padding:16px;display:flex;gap:12px;">
+        <a href="${canvas.toDataURL('image/png')}" download="收据_${currentBillId}.png" style="background:#07c160;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:15px;">保存图片</a>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }).catch(err => {
+    alert('生成图片失败：' + err.message);
+  });
+}
+
+function closeBigImage() {
+  const modal = document.getElementById('bigImageModal');
+  if (modal) document.body.removeChild(modal);
+}
+
+function markAsSent() {
+  const bill = bills.find(b => b.id === currentBillId);
+  if (!bill) return;
+  bill.sent = true;
+  bill.updatedAt = new Date().toISOString();
+  saveBills();
+  alert('已标记为已发送');
+  showPage('detail');
+  renderDetail(bill);
+}
+
+// ===== 一键分析地址 =====
+function onAddrInput() {
+  document.getElementById('addrResult').style.display = 'none';
+}
+function analyzeAddress() {
+try {
+
+  const raw = document.getElementById('fAddress').value.trim();
+  if (!raw) { alert('请先粘贴或输入包含客户信息的文本'); return; }
+  const resultEl = document.getElementById('addrResult');
+  
+  let foundName = '';
+  let foundPhone = '';
+  let foundAddr = '';
+  
+  // ===== 预处理：识别带标签的格式 =====
+  // 格式1: "收件人: 椒椒\n手机号码: 19530256561\n所在地区: ...\n详细地址: ..."
+  // 格式2: "椒椒 19530256561 江苏省南京市..."（无标签纯文本）
+  const labelPatterns = [
+    /收件人[：:](.+?)(?:\n|$)/,
+    /姓名[：:](.+?)(?:\n|$)/,
+    /客户[名姓][：:](.+?)(?:\n|$)/,
+    /联系人[：:](.+?)(?:\n|$)/,
+    /名字[：:](.+?)(?:\n|$)/,
+  ];
+  const phonePatterns = [
+    /手机[号碼号码]?[：:](\s*)(1[3-9]\d{9})/,
+    /电话[号码]?[：:](\s*)(1[3-9]\d{9})/,
+    /联系电话[：:](\s*)(1[3-9]\d{9})/,
+    /手机[号碼号码]?[：:]([0-9-]+)/,
+  ];
+  const addrPatterns = [
+    /所在地区[：:](.+?)(?:\n|$)/,
+    /地区[：:](.+?)(?:\n|$)/,
+    /地址[：:](.+?)(?:\n|$)/,
+    /详细地址[：:](.+?)(?:\n|$)/,
+    /收货地址[：:](.+?)(?:\n|$)/,
+    /配送地址[：:](.+?)(?:\n|$)/,
+  ];
+  
+  let isLabeledFormat = false;
+  
+  // 尝试标签格式提取
+  for (const p of labelPatterns) {
+    const match = raw.match(p);
+    if (match && match[1].trim()) {
+      foundName = match[1].trim();
+      isLabeledFormat = true;
+      break;
+    }
+  }
+  for (const p of phonePatterns) {
+    const match = raw.match(p);
+    if (match && match[2] ? match[2].trim() : match[1]?.trim()) {
+      foundPhone = (match[2] || match[1]).replace(/[^0-9]/g, '');
+      isLabeledFormat = true;
+      break;
+    }
+  }
+  for (const p of addrPatterns) {
+    const match = raw.match(p);
+    if (match && match[1].trim()) {
+      foundAddr = match[1].trim();
+      isLabeledFormat = true;
+      break;
+    }
+  }
+  
+  // 如果是带标签的格式，直接回填，不需要再做复杂解析
+  if (isLabeledFormat && (foundName || foundPhone || foundAddr)) {
+    let filled = [];
+    const customerField = document.getElementById('fCustomer');
+    if (foundName && !customerField.value.trim()) {
+      customerField.value = foundName;
+      filled.push('姓名→' + foundName);
+    }
+    if (foundPhone) {
+      document.getElementById('fPhone').value = foundPhone;
+      filled.push('电话→' + foundPhone);
+    }
+    if (foundAddr) {
+      document.getElementById('fAddress').value = foundAddr;
+      filled.push('地址→' + foundAddr);
+    }
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已回填：</span>' +
+        filled.map(f => '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">' + f + '</span>').join('');
+    return;
+  }
+  
+  // ===== 无标签格式：智能拆分（原有逻辑）=====
+  let text = raw;
+  const provinces = ['北京','天津','上海','重庆','河北','山西','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','海南','四川','贵州','云南','陕西','甘肃','青海','台湾','内蒙古','广西','西藏','宁夏','新疆','香港','澳门'];
+  const provSuffixes = ['省','市','自治区','壮族自治区','回族自治区','维吾尔自治区','特别行政区'];
+  
+  // 1. 提取手机号
+  const phoneMatch = text.match(/1[3-9]\d{9}/);
+  if (phoneMatch) {
+    foundPhone = phoneMatch[0];
+    text = text.replace(foundPhone, ' ');
+  }
+  // 提取固话
+  if (!foundPhone) {
+    const telMatch = text.match(/0\d{2,3}-?\d{7,8}/);
+    if (telMatch) { foundPhone = telMatch[0]; text = text.replace(foundPhone, ' '); }
+  }
+  
+  // 2. 清洗干扰文本
+  const noiseWords = ['已付款','未付款','已发货','待发货','已签收','货到付款','急','着急','尽快','今天','明天','下午','上午','备注','谢谢','麻烦','辛苦','微信','支付宝','转账','现金','结清','欠款','催','到付','自提','包邮','快递','物流','收件人','手机号码','所在地区','详细地址','联系人','联系电话','客户姓名','日期','订单号','编号'];
+  for (const nw of noiseWords) {
+    text = text.replace(new RegExp(nw, 'g'), ' ');
+  }
+  text = text.replace(/\d{4}[年/-]\d{1,2}[月/-]?\d{0,2}[日号]?/g, ' ');
+  text = text.replace(/\b\d{8,}\b/g, ' ');
+  text = text.replace(/[,，、:：；;!！？?。\n\r\t]/g, ' ');
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  // 3. 提取省份
+  let province = '', provFull = '';
+  for (const p of provinces) {
+    for (const s of provSuffixes) {
+      if (text.includes(p + s)) { province = p; provFull = p + s; break; }
+    }
+    if (!province && text.includes(p)) { province = p; provFull = p; }
+    if (province) { text = text.replace(provFull, ' '); break; }
+  }
+  
+  // 4. 提取市
+  const cityMatch = text.match(/([\u4e00-\u9fa5]+?(?:市|地区|自治州))/);
+  let city = '';
+  if (cityMatch) { city = cityMatch[1]; text = text.replace(city, ' '); }
+  
+  // 5. 提取区/县
+  const distMatch = text.match(/([\u4e00-\u9fa5]+?(?:区|县|旗|新区|开发区))/);
+  let district = '';
+  if (distMatch) { district = distMatch[1]; text = text.replace(distMatch[1], ' '); }
+  
+  // 6. 提取街道/路/镇
+  const streetMatch = text.match(/([\u4e00-\u9fa5]+?(?:路|街|道|巷|弄|胡同|镇|乡|村|大厦|广场|小区|花园|市场|园|城|座|层|栋|号院))/);
+  let street = '';
+  if (streetMatch) { street = streetMatch[1]; text = text.replace(streetMatch[1], ' '); }
+  
+  // 7. 门牌号
+  const numMatch = text.match(/(\d+[号栋座层])/);
+  let doorNum = '';
+  if (numMatch) { doorNum = numMatch[1]; text = text.replace(doorNum, ' '); }
+  
+  // 8. 剩余提取姓名
+  const customerField = document.getElementById('fCustomer');
+  text = text.replace(/\s+/g, ' ').trim();
+  if (!customerField.value.trim() && text) {
+    const nameMatch = text.match(/([\u4e00-\u9fa5]{2,4})/);
+    if (nameMatch) {
+      const exclude = ['公寓','商务','国际','中心','大厦','小区','花园','市场','物流','批发','商贸','有限','公司','有限公'];
+      if (!exclude.includes(nameMatch[1])) {
+        foundName = nameMatch[1];
+        text = text.replace(foundName, '').trim();
+      }
+    }
+  }
+  
+  // 9. 组装地址
+  let addrParts = [];
+  if (provFull) addrParts.push(provFull); else if (province) addrParts.push(province);
+  if (city) addrParts.push(city);
+  if (district) addrParts.push(district);
+  if (street) addrParts.push(street);
+  if (doorNum) addrParts.push(doorNum);
+  text = text.replace(/\s+/g, ' ').trim();
+  if (text && text.length > 0) {
+    const fragments = text.split(/\s+/).filter(f => f.length >= 2);
+    if (fragments.length > 0) addrParts.push(fragments.join(''));
+  }
+  foundAddr = addrParts.join('');
+  
+  // 10. 回填
+  let filled = [];
+  if (foundName && !customerField.value.trim()) {
+    customerField.value = foundName;
+    filled.push('姓名→' + foundName);
+  }
+  if (foundPhone) {
+    document.getElementById('fPhone').value = foundPhone;
+    filled.push('电话→' + foundPhone);
+  }
+  if (foundAddr) {
+    document.getElementById('fAddress').value = foundAddr;
+    filled.push('地址→' + foundAddr);
+  }
+  
+  resultEl.style.display = 'block';
+  if (filled.length > 0) {
+    resultEl.innerHTML = '<span style="color:var(--primary);font-weight:600">✓ 已回填：</span>' +
+        filled.map(f => '<span style="background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-right:4px">' + f + '</span>').join('');
+  } else {
+    resultEl.innerHTML = '<span style="color:var(--orange)">未能识别有效信息，请手动填写</span>';
+  }
+
+} catch(e) { alert("地址分析出错：" + e.message + "\n\n请检查输入格式"); }
+}
+
+// ===== 初始化 =====
+loadBills();
+if (bills.length === 0) {
+  // 示例数据
+  bills = [{
+    id: uid(),
+    customer: '河南',
+    phone: '15637134601',
+    date: '2026-06-22',
+    address: '北京',
+    handler: 'fvvx',
+    items: [{ name: '毛肚', unit: '斤', qty: 10, price: 5 }],
+    total: 50, discount: 0, actual: 50, debt: 50, paid: false, sent: false,
+    payMethods: ['微信'],
+    contactPhone: '15333813314',
+    contactAddr: '郑州物流港',
+    payee: '牛实在',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }];
+  saveBills();
+}
+renderBillList();
+document.getElementById('fDate').value = todayStr();
+
+function savePreviewImage() {
+  var sheet = document.querySelector('.preview-sheet');
+  if (!sheet) { alert('没有预览内容'); return; }
+  var origShadow = sheet.style.boxShadow;
+  sheet.style.boxShadow = 'none';
+  html2canvas(sheet, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    width: sheet.scrollWidth,
+    height: sheet.scrollHeight
+  }).then(function(canvas) {
+    sheet.style.boxShadow = origShadow;
+    var link = document.createElement('a');
+    link.download = '收据_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(function(err) {
+    sheet.style.boxShadow = origShadow;
+    alert('保存失败：' + err.message);
+  });
+}
+</script>
 </body>
 </html>
-

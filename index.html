@@ -698,8 +698,11 @@ function showPreview(id) {
   currentBillId = id;
   const payMethodStr = (bill.payMethods||[]).join('、') || '-';
 
-  document.getElementById('previewContent').innerHTML = `
-    <div class="preview-sheet" id="previewSheet">
+  // 先渲染到隐藏的容器用于截图
+  const hiddenDiv = document.createElement('div');
+  hiddenDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;padding:20px;';
+  hiddenDiv.innerHTML = `
+    <div class="preview-sheet" id="previewSheet" style="width:100%;max-width:none;box-shadow:none;">
       <div class="preview-header">
         <h1>服 务 账 单</h1>
         <div class="subtitle">${bill.paid?'已结清':'尚未结清'}</div>
@@ -707,49 +710,50 @@ function showPreview(id) {
       <div style="text-align:right" class="bill-id">${bill.id}</div>
       <div class="preview-info">
         <p><strong>客户姓名：</strong>${esc(bill.customer)}</p>
-        <p><strong>客户电话：</strong>${esc(bill.phone||'-')}</p>
-        <p><strong>日期：</strong>${bill.date}</p>
-        <p><strong>客户地址：</strong>${esc(bill.address||'-')}</p>
+        <p><strong>联系电话：</strong>${esc(bill.phone||'-')}</p>
+        <p><strong>收货地址：</strong>${esc(bill.address||'-')}</p>
+        <p><strong>开单日期：</strong>${bill.date}</p>
       </div>
       <table class="preview-table">
-        <tr><th>序号</th><th>品名及规格</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th></tr>
-        ${bill.items.map((it,i)=>`
-          <tr>
-            <td style="text-align:center">${i+1}</td>
-            <td>${esc(it.name)}</td>
-            <td>${esc(it.unit)}</td>
-            <td style="text-align:right">${it.qty}</td>
-            <td style="text-align:right">${fmt(it.price)}</td>
-            <td style="text-align:right">${fmt(it.qty*it.price)}</td>
-          </tr>
-        `).join('')}
-        <tr><td colspan="5" style="text-align:right;font-weight:700">合计金额（大写）</td><td style="font-weight:700">${toChineseNum(bill.total)}</td></tr>
-        <tr><td colspan="5" style="text-align:right">付款方式：</td><td><span style="font-size:12px">☑ 微信　☐ 付现宝　☐ 转账　☐ 现金　☐ 其他</span></td></tr>
-        <tr><td colspan="5" style="text-align:right;font-weight:700">￥</td><td style="font-weight:700;font-size:17px">${fmt(bill.actual)}</td></tr>
+        <thead>
+          <tr><th style="width:40px">序号</th><th>品名及规格</th><th style="width:60px">单位</th><th style="width:60px">数量</th><th style="width:80px">单价</th><th style="width:80px">金额</th></tr>
+        </thead>
+        <tbody>
+          ${(bill.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name)}</td><td>${esc(it.unit||'')}</td><td>${it.qty}</td><td>¥${it.price.toFixed(2)}</td><td>¥${(it.qty*it.price).toFixed(2)}</td></tr>`).join('')}
+          ${Array(Math.max(0,5-(bill.items||[]).length)).fill(0).map((_,i)=>`<tr><td>${(bill.items||[]).length+i+1}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}
+        </tbody>
       </table>
-      <div class="preview-total">
-        <span>应收金额：￥${fmt(bill.total)}</span>
-        <span>优惠金额：￥${fmt(bill.discount||0)}</span>
-      </div>
       <div class="preview-summary">
-        <div class="srow"><span>实收金额：￥${fmt(bill.actual)}</span></div>
-        <div class="srow"><span style="color:var(--red)">欠款金额：￥${fmt(bill.debt)}${bill.debt<=0?' | 标记为已结清':''}</span></div>
+        <p><strong>合计金额（大写）：</strong>${digitUppercase(bill.total)}</p>
+        <p><strong>应收金额：</strong>¥${bill.total.toFixed(2)}</p>
+        <p><strong>付款方式：</strong>${payMethodStr}</p>
       </div>
-      <div class="preview-bottom">
-        <div class="brow"><span>收款人：${esc(bill.payee||'牛实在')}</span><span>联系电话：${esc(bill.contactPhone||'15333813314')}</span></div>
-        <div class="brow"><span>联系地址：${esc(bill.contactAddr||'郑州物流港')}</span></div>
-        <div class="brow"><span>经手人：-</span></div>
+      <div class="preview-footer-text">
+        <p>收款人：${esc(bill.collector||'-')}&nbsp;&nbsp;&nbsp;&nbsp;经手人：${esc(bill.handler||'-')}</p>
+        <p>联系电话：${esc(bill.contactPhone||'-')}&nbsp;&nbsp;&nbsp;&nbsp;联系地址：${esc(bill.contactAddr||'-')}</p>
       </div>
-      <div style="margin-top:14px;padding-top:10px;border-top:1px solid #eee;font-size:11px;color:#999;text-align:center">
-        创建账单 ${formatTime(bill.createdAt)}
-      </div>
-    </div>
-    <div class="preview-footer">
-      <button class="btn-secondary" onclick="window.print()">打印</button>
-      <button class="btn-primary" onclick="markAsSent()">标记为已发送</button>
     </div>
   `;
-  showPage('preview');
+  document.body.appendChild(hiddenDiv);
+
+  // 用 html2canvas 生成图片
+  html2canvas(hiddenDiv.querySelector('#previewSheet'), {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    width: hiddenDiv.querySelector('#previewSheet').scrollWidth,
+    height: hiddenDiv.querySelector('#previewSheet').scrollHeight
+  }).then(canvas => {
+    document.body.removeChild(hiddenDiv);
+    
+    // 显示图片预览
+    document.getElementById('previewContent').innerHTML = '<div style="text-align:center;padding:20px;"><img id="previewImg" style="max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.15);" src="' + canvas.toDataURL('image/png') + '"></div>';
+    document.getElementById('previewPage').classList.add('show');
+  }).catch(err => {
+    document.body.removeChild(hiddenDiv);
+    alert('生成预览图片失败：' + err.message);
+  });
 }
 
 function markAsSent() {

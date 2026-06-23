@@ -156,7 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hira
 .stat-card .val{font-size:18px;font-weight:700;color:var(--primary)}
 .stat-card .lab{font-size:11px;color:var(--text3);margin-top:2px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="html2canvas.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -768,6 +768,8 @@ function onAddrInput() {
   document.getElementById('addrResult').style.display = 'none';
 }
 function analyzeAddress() {
+try {
+
   const raw = document.getElementById('fAddress').value.trim();
   if (!raw) { alert('请先粘贴或输入包含客户信息的文本'); return; }
   const resultEl = document.getElementById('addrResult');
@@ -958,6 +960,8 @@ function analyzeAddress() {
   } else {
     resultEl.innerHTML = '<span style="color:var(--orange)">未能识别有效信息，请手动填写</span>';
   }
+
+} catch(e) { alert("地址分析出错：" + e.message + "\n\n请检查输入格式"); }
 }
 
 // ===== 初始化 =====

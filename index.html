@@ -835,6 +835,7 @@ try {
   let foundName = '';
   let foundPhone = '';
   let foundAddr = '';
+  let isLabeledFormat = false;
   
   // ===== 预处理：识别带标签的格式 =====
   // 格式1: "收件人: 椒椒\n手机号码: 19530256561\n所在地区: ...\n详细地址: ..."
@@ -852,6 +853,12 @@ try {
     /联系电话[：:]\s*(1[3-9]\d{9})/,
     /手机号码?[：:]\s*([0-9-]+)/,
   ];
+  const addrPatterns = [
+    /收货地址[：:](.+?)(?:\n|$)/,
+    /配送地址[：:](.+?)(?:\n|$)/,
+    /地址[：:](.+?)(?:\n|$)/,
+  ];
+  
   // 地址提取：优先匹配「所在地区+详细地址」组合，再兜底单个标签
   const areaMatch = raw.match(/所在地区[：:](.+?)(?:\n|$)/);
   const detailMatch = raw.match(/详细地址[：:](.+?)(?:\n|$)/);
@@ -859,13 +866,6 @@ try {
     foundAddr = areaMatch[1].trim() + detailMatch[1].trim();
     isLabeledFormat = true;
   }
-  const addrPatterns = [
-    /收货地址[：:](.+?)(?:\n|$)/,
-    /配送地址[：:](.+?)(?:\n|$)/,
-    /地址[：:](.+?)(?:\n|$)/,
-  ];
-  
-  let isLabeledFormat = false;
   
   // 尝试标签格式提取
   for (const p of labelPatterns) {

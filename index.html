@@ -766,7 +766,6 @@ function showPreview(id) {
         </table>
         <div class="preview-summary">
           <p><span style="flex:0 0 auto">合计金额（大写）</span><span style="text-align:right">${digitUppercase(bill.total)}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>¥${bill.total.toFixed(2)}</b></span></p>
-          <p><span>付款方式：</span><span>${['微信','支付宝','转账','现金','其他'].map(m=>`<label style="margin-right:10px;cursor:pointer"><input type="checkbox" ${(bill.payMethods||[]).includes(m)?'checked':''} disabled style="vertical-align:middle;margin-right:2px">${m}</label>`).join('')}</span></p>
         </div>
         <div class="preview-footer-text">
           <p>收款人：牛实在工厂</p>

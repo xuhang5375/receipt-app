@@ -6,6 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07c160">
 <title>发货单 v20260624-1000</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1088,4 +1090,9 @@ function savePreviewImage() {
 }
 </script>
 </body>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
 </html>

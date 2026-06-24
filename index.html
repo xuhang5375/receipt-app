@@ -860,7 +860,8 @@ try {
   ];
   
   // 地址提取：优先匹配「所在地区+详细地址」组合，再兜底单个标签
-  const areaMatch = raw.match(/所在地区[：:](.+?)(?:\n|$)/);
+  // 注意：所在地区匹配时要停在「详细地址」标签前，防止单行格式时过度匹配
+  const areaMatch = raw.match(/所在地区[：:](.+?)(?=详细地址[：:]|\n|$)/);
   const detailMatch = raw.match(/详细地址[：:](.+?)(?:\n|$)/);
   if (areaMatch && detailMatch) {
     foundAddr = areaMatch[1].trim() + detailMatch[1].trim();
